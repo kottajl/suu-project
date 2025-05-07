@@ -1,1 +1,1 @@
-# suu-project
+# gRPC in C++ with OTel
