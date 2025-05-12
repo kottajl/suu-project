@@ -1,0 +1,30 @@
+Services
+Vehicle Service – Zarządza pojazdami i ich stanem:
+[Unary] Pobiera szczegółowe dane o pojeździe (np. typ, lokalizacja, stan techniczny, status dostępności).
+
+[Unary] Dodaje nowy pojazd do systemu.
+
+[Unary] Aktualizuje dane pojazdu (np. przebieg, ostatni serwis).
+
+[Unary] Zmienia status pojazdu (np. z „dostępny” na „w trasie” lub „niedostępny”).
+
+[Client-Streaming] Przesyła serię danych telemetrycznych z jednego pojazdu (prędkość, lokalizacja, zużycie paliwa) w formie strumienia.
+
+[Server-Streaming] Umożliwia śledzenie pojazdu w czasie rzeczywistym – klient otrzymuje stream lokalizacji GPS co kilka sekund.
+
+[Bidirectional-Streaming] Obsługuje dwukierunkową sesję do dynamicznego przypisywania zadań pojazdowi oraz odbierania potwierdzeń i alertów (np. wypadek, opóźnienie, przekroczenie limitu prędkości).
+
+
+
+Delivery Service – Zarządza dostawami i przesyłkami:
+[Unary] Tworzy nowe zlecenie dostawy (z adresem odbiorcy, szczegółami przesyłki).
+
+[Unary] Pobiera status konkretnej dostawy (np. „w przygotowaniu”, „w drodze”, „dostarczona”).
+
+[Unary] Aktualizuje informacje o przesyłce (np. zmiana adresu, opóźnienie).
+
+[Server-Streaming] Śledzi historię zmian statusu przesyłki (do użytku np. w aplikacji mobilnej klienta).
+
+[Bidirectional-Streaming] Komunikuje się z kierowcą podczas dostawy – przyjmuje statusy etapów dostawy (np. „odebrano z magazynu”, „dostarczono”) i wysyła powiadomienia, przypomnienia, nowe zlecenia itp.
+
+[Client-Streaming] Przetwarza zbiorczą listę przesyłek zlecanych do dostarczenia (np. z systemu e-commerce).

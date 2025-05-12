@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package fleet;
+
+service VehicleService {
+  rpc GetVehicleInfo(VehicleRequest) returns (VehicleInfo) {}
+  rpc UpdateVehicleStatus(VehicleStatusUpdate) returns (UpdateAck) {}
+  rpc StreamVehicleTelemetry(stream TelemetryData) returns (TelemetryAck) {}
+  rpc TrackVehicle(VehicleTrackRequest) returns (stream VehicleLocation) {}
+  rpc VehicleControl(stream ControlRequest) returns (stream ControlResponse) {}
+}
+
+message VehicleRequest {
+  string vehicle_id = 1;
+}
+
+message VehicleInfo {
+  string vehicle_id = 1;
+  string status = 2;
+  string location = 3;
+}
+
+message VehicleStatusUpdate {
+  string vehicle_id = 1;
+  string new_status = 2;
+}
+
+message UpdateAck {
+  bool success = 1;
+}
+
+message TelemetryData {
+  string vehicle_id = 1;
+  double speed = 2;
+  string location = 3;
+  double fuel_level = 4;
+}
+
+message TelemetryAck {
+  bool received = 1;
+}
+
+message VehicleTrackRequest {
+  string vehicle_id = 1;
+}
+
+message VehicleLocation {
+  string vehicle_id = 1;
+  string location = 2;
+  int64 timestamp = 3;
+}
+
+message ControlRequest {
+  string vehicle_id = 1;
+  string command = 2;
+}
+
+message ControlResponse {
+  string vehicle_id = 1;
+  string status = 2;
+  string message = 3;
+}
