@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package vehicle;
+
+service VehicleService {
+  rpc sendLocation(stream Location) returns (Ack);
+
+  rpc trackVehicle(TrackRequest) returns (stream Location);
+
+  rpc getPackagesDeliveredBy(DeliveryQuery) returns (DeliveryCount);
+}
+
+message Location {
+  int32 vehicle_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message Ack {
+  string message = 1;
+}
+
+message TrackRequest {
+  int32 vehicle_id = 1;
+}
+
+message DeliveryQuery {
+  int32 vehicle_id = 1;
+}
+
+message DeliveryCount {
+  int32 count = 1;
+}

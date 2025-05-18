@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package package;
+
+service PackageService {
+  rpc updatePackages(stream PackageUpdate) returns (stream PackageInstruction);
+
+  rpc createPackage(PackageData) returns (PackageResponse);
+
+  rpc getPackageStatus(PackageStatusRequest) returns (PackageStatusResponse);
+  
+  rpc getDeliveredCountByVehicle(VehicleQuery) returns (DeliveredCount);
+}
+
+message PackageUpdate {
+  int32 vehicle_id = 1;
+  int32 package_id = 2;
+  PackageStatus status = 3;
+}
+
+message PackageInstruction {
+  int32 package_id = 1;
+  string delivery_address = 2;
+}
+
+message PackageData {
+  string sender_address = 1;
+  string recipient_address = 2;
+}
+
+message PackageResponse {
+  int32 package_id = 1;
+}
+
+message PackageStatusRequest {
+  int32 package_id = 1;
+}
+
+message PackageStatusResponse {
+  PackageStatus status = 1;
+}
+
+message VehicleQuery {
+  int32 vehicle_id = 1;
+}
+
+message DeliveredCount {
+  int32 count = 1;
+}
+
+enum PackageStatus {
+  CREATED = 0;
+  IN_TRANSIT = 1;
+  DELIVERED = 2;
+}

@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-client
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: customer-client
+  template:
+    metadata:
+      labels:
+        app: customer-client
+    spec:
+      containers:
+      - name: customer-client
+        image: your-docker-repo/customer-client:latest
+        command: ["/app/customer_client"]

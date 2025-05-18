@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vehicle-client
+spec:
+  serviceName: "vehicle-client"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vehicle-client
+  template:
+    metadata:
+      labels:
+        app: vehicle-client
+    spec:
+      containers:
+      - name: vehicle-client
+        image: your-docker-repo/vehicle-client:latest
+        command: ["/app/vehicle_client"]
+        env:
+        - name: VEHICLE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vehicle-client
+spec:
+  clusterIP: None
+  selector:
+    app: vehicle-client
+  ports:
+  - port: 80
+    targetPort: 80

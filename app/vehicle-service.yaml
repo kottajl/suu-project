@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vehicle-service
+  template:
+    metadata:
+      labels:
+        app: vehicle-service
+    spec:
+      containers:
+      - name: vehicle-service
+        image: your-docker-repo/vehicle-service:latest
+        ports:
+        - containerPort: 50051
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vehicle-service
+spec:
+  selector:
+    app: vehicle-service
+  ports:
+  - protocol: TCP
+    port: 50051
+    targetPort: 50051
+  type: ClusterIP
