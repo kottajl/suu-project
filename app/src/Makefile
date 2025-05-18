@@ -1,8 +1,13 @@
 PROTOC=protoc
-GRPC_CPP_PLUGIN=grpc_cpp_plugin
+GRPC_CPP_PLUGIN1=grpc_cpp_plugin
+GRPC_CPP_PLUGIN ?= `which $(GRPC_CPP_PLUGIN1)`
 
-CPPFLAGS=`pkg-config --cflags grpc++ grpc protobuf`
-LDFLAGS=`pkg-config --libs grpc++ grpc protobuf`
+CPPFLAGS += `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
+LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse $(PROTOBUF_ABSL_DEPS)`\
+           $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
+           -pthread\
+           -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-needed\
+           -ldl
 
 PROTO_SRCS=vehicle_service.proto package_service.proto
 PROTO_GEN_SRCS=vehicle_service.pb.cc vehicle_service.grpc.pb.cc package_service.pb.cc package_service.grpc.pb.cc
@@ -13,7 +18,7 @@ OBJECTS=$(SOURCES:.cpp=.o)
 BINARIES=package_service vehicle_service customer manager vehicle
 
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -O2
+CXXFLAGS += -std=c++17 -Wall -O2
 
 all: $(PROTO_GEN_SRCS) $(BINARIES)
 

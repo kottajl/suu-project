@@ -3,7 +3,7 @@
 #include <chrono>
 #include <random>
 
-#include <grpcpp/grpcpp.h>
+#include <grpc/grpc.h>
 #include "vehicle_service.grpc.pb.h"
 
 using grpc::Channel;

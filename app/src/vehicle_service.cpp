@@ -7,7 +7,7 @@
 #include <condition_variable>
 #include <unordered_map>
 
-#include <grpcpp/grpcpp.h>
+#include <grpc/grpc.h>
 #include "vehicle_service.grpc.pb.h"
 
 using grpc::Server;

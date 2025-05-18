@@ -5,9 +5,9 @@
 #include <algorithm>
 #include <random>
 #include <chrono>
-#include <cstdlib>  // atoi
+#include <cstdlib>
 
-#include <grpcpp/grpcpp.h>
+#include <grpc/grpc.h>
 #include "vehicle_service.grpc.pb.h"
 #include "package_service.grpc.pb.h"
 
