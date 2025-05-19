@@ -7,8 +7,13 @@
 #include <condition_variable>
 #include <unordered_map>
 
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+#include <grpcpp/security/server_credentials.h>
 #include <grpc/grpc.h>
+#include <grpcpp/grpcpp.h>
 #include "vehicle_service.grpc.pb.h"
+#include "package_service.grpc.pb.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -23,8 +28,8 @@ using vehicle::Ack;
 using vehicle::TrackRequest;
 using vehicle::DeliveryQuery;
 using vehicle::DeliveryCount;
-using package::PackageService;
-using package::VehicleQuery;
+using packages::PackageService;
+using packages::VehicleQuery;
 
 struct VehicleLocation {
     double latitude;
@@ -47,7 +52,7 @@ private:
 
 public:
 	VehicleServiceImpl(std::shared_ptr<grpc::Channel> package_channel)
-        : package_stub_(package::PackageService::NewStub(package_channel)) {}
+        : package_stub_(packages::PackageService::NewStub(std::static_pointer_cast<grpc::ChannelInterface>(package_channel))) {}
 		
     Status sendLocation(ServerContext* context,
                         ServerReader<Location>* reader,
@@ -136,7 +141,7 @@ public:
 		query.set_vehicle_id(request->vehicle_id());
 
 		grpc::ClientContext client_context;
-		DeliveredCount pkg_response;
+		packages::DeliveredCount pkg_response;
 
 		grpc::Status status = package_stub_->getDeliveredCountByVehicle(&client_context, query, &pkg_response);
 
@@ -157,7 +162,7 @@ int main(int argc, char** argv) {
     std::string package_service_address("localhost:50051");
 	auto package_channel = grpc::CreateChannel(package_service_address, grpc::InsecureChannelCredentials());
 	
-    VehicleServiceImpl service;
+    VehicleServiceImpl service(package_channel);
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());

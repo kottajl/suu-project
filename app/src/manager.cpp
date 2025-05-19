@@ -3,6 +3,7 @@
 #include <chrono>
 #include <random>
 
+#include <grpcpp/grpcpp.h>
 #include <grpc/grpc.h>
 #include "vehicle_service.grpc.pb.h"
 
@@ -15,8 +16,8 @@ using namespace vehicle;
 
 class ManagerClient {
 public:
-    ManagerClient(std::shared_ptr<Channel> channel, int num_vehicles)
-        : stub_(VehicleService::NewStub(channel)), rng_(std::random_device{}()), max_vehicle_id_(num_vehicles) {}
+    ManagerClient(std::shared_ptr<grpc::ChannelInterface> channel, int num_vehicles)
+    : stub_(VehicleService::NewStub(channel)), rng_(std::random_device{}()), max_vehicle_id_(num_vehicles) {}
 
     void Run() {
         std::uniform_int_distribution<int> vehicle_dist(1, max_vehicle_id_);
@@ -69,10 +70,11 @@ public:
 private:
     std::unique_ptr<VehicleService::Stub> stub_;
     std::default_random_engine rng_;
+    int max_vehicle_id_;
 };
 
 int main(int argc, char** argv) {
-	if (argc < 2) {
+    if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <number_of_vehicles>\n";
         return 1;
     }
@@ -84,7 +86,9 @@ int main(int argc, char** argv) {
     }
 
     std::string server_addr = "localhost:50052";
-    ManagerClient client(grpc::CreateChannel(server_addr, grpc::InsecureChannelCredentials()), num_vehicles);
+    auto channel = grpc::CreateChannel(server_addr, grpc::InsecureChannelCredentials());
+    ManagerClient client(channel, num_vehicles);
     client.Run();
+
     return 0;
 }

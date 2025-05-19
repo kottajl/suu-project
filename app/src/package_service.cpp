@@ -5,7 +5,11 @@
 #include <mutex>
 
 #include <grpc/grpc.h>
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+#include <grpcpp/security/server_credentials.h>
 #include "package_service.grpc.pb.h"
+#include "vehicle_service.grpc.pb.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -14,14 +18,14 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
-using package::PackageService;
-using package::PackageData;
-using package::PackageResponse;
-using package::PackageStatusRequest;
-using package::PackageStatusResponse;
-using package::PackageUpdate;
-using package::PackageInstruction;
-using package::PackageStatus;
+using packages::PackageService;
+using packages::PackageData;
+using packages::PackageResponse;
+using packages::PackageStatusRequest;
+using packages::PackageStatusResponse;
+using packages::PackageUpdate;
+using packages::PackageInstruction;
+using packages::PackageStatus;
 
 struct Package {
     int package_id;

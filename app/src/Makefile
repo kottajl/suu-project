@@ -1,12 +1,14 @@
 PROTOC=protoc
 GRPC_CPP_PLUGIN1=grpc_cpp_plugin
 GRPC_CPP_PLUGIN ?= `which $(GRPC_CPP_PLUGIN1)`
+PKG_CONFIG_PATH := $(HOME)/.local/lib/pkgconfig
+export PKG_CONFIG_PATH
 
-CPPFLAGS += `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
-LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse $(PROTOBUF_ABSL_DEPS)`\
+CPPFLAGS += -I$(HOME)/.local/include `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
+LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
            $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
            -pthread\
-           -Wl,--no-as-needed -lgrpc++_reflection -Wl,--as-needed\
+           -lsystemd\
            -ldl
 
 PROTO_SRCS=vehicle_service.proto package_service.proto
@@ -31,19 +33,19 @@ all: $(PROTO_GEN_SRCS) $(BINARIES)
 vehicle_service.pb.cc vehicle_service.grpc.pb.cc: vehicle_service.proto
 package_service.pb.cc package_service.grpc.pb.cc: package_service.proto
 
-package_service: package_service.o package_service.pb.o package_service.grpc.pb.o
+package_service: package_service.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_service.pb.o package_service.grpc.pb.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-vehicle_service: vehicle_service.o vehicle_service.pb.o vehicle_service.grpc.pb.o
+vehicle_service: vehicle_service.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_service.pb.o package_service.grpc.pb.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-customer: customer.o package_service.pb.o package_service.grpc.pb.o
+customer: customer.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_service.pb.o package_service.grpc.pb.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 manager: manager.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_service.pb.o package_service.grpc.pb.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-vehicle: vehicle.o package_service.pb.o package_service.grpc.pb.o
+vehicle: vehicle.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_service.pb.o package_service.grpc.pb.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 %.o: %.cpp $(PROTO_GEN_HDRS)

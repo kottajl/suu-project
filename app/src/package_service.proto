@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package package;
+package packages;
 
 service PackageService {
   rpc updatePackages(stream PackageUpdate) returns (stream PackageInstruction);

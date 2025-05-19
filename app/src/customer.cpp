@@ -4,6 +4,7 @@
 #include <chrono>
 #include <random>
 
+#include <grpcpp/grpcpp.h>
 #include <grpc/grpc.h>
 #include "package_service.grpc.pb.h"
 
@@ -11,16 +12,16 @@ using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
-using package::PackageService;
-using package::PackageData;
-using package::PackageResponse;
-using package::PackageStatusRequest;
-using package::PackageStatusResponse;
-using package::PackageStatus;
+using packages::PackageService;
+using packages::PackageData;
+using packages::PackageResponse;
+using packages::PackageStatusRequest;
+using packages::PackageStatusResponse;
+using packages::PackageStatus;
 
 class PackageClient {
 public:
-    PackageClient(std::shared_ptr<Channel> channel)
+    PackageClient(std::shared_ptr<grpc::ChannelInterface> channel)
         : stub_(PackageService::NewStub(channel)) {}
 
     int CreatePackage(const std::string& from, const std::string& to) {
@@ -63,26 +64,27 @@ private:
 
 int main() {
     std::string target = "localhost:50051";
-    PackageClient client(grpc::CreateChannel(target, grpc::InsecureChannelCredentials()));
+    auto channel = grpc::CreateChannel(target, grpc::InsecureChannelCredentials());
+    PackageClient client(channel);
 
     std::vector<int> package_ids;
 
     std::default_random_engine rng(std::random_device{}());
     std::uniform_int_distribution<int> wait_time(1000, 5000);
     std::uniform_int_distribution<int> choose_action(0, 1);
-    std::uniform_int_distribution<int> choose_index(0, 0); 
+    std::uniform_int_distribution<int> choose_index(0, 0);
 
     while (true) {
         int action = choose_action(rng);
 
         if (action == 0) {
-            std::string id = client.CreatePackage("Sender Street 1", "Recipient Ave 9");
-            if (!id.empty()) {
+            int id = client.CreatePackage("Sender Street 1", "Recipient Ave 9");
+            if (id != -1) {
                 package_ids.push_back(id);
                 choose_index = std::uniform_int_distribution<int>(0, package_ids.size() - 1);
             }
         } else if (!package_ids.empty()) {
-            std::string id = package_ids[choose_index(rng)];
+            int id = package_ids[choose_index(rng)];
             client.GetStatus(id);
         }
 

@@ -7,6 +7,8 @@
 #include <chrono>
 #include <cstdlib>
 
+#include <condition_variable>
+#include <grpcpp/grpcpp.h>
 #include <grpc/grpc.h>
 #include "vehicle_service.grpc.pb.h"
 #include "package_service.grpc.pb.h"
@@ -16,16 +18,17 @@ using grpc::ClientContext;
 using grpc::Status;
 using grpc::ClientWriter;
 using grpc::ClientReaderWriter;
+using grpc::ChannelInterface;
 
 using namespace vehicle;
-using namespace package;
+using namespace packages;
 
 class VehicleClient {
 public:
-    VehicleClient(std::shared_ptr<Channel> vehicle_channel,
-                  std::shared_ptr<Channel> package_channel)
-        : vehicle_stub_(VehicleService::NewStub(vehicle_channel)),
-          package_stub_(PackageService::NewStub(package_channel)) {}
+    VehicleClient(std::shared_ptr<ChannelInterface> vehicle_channel,
+                  std::shared_ptr<ChannelInterface> package_channel)
+    : vehicle_stub_(VehicleService::NewStub(vehicle_channel)),
+    package_stub_(PackageService::NewStub(package_channel)) {}
 
     void Start(int vehicle_id) {
         std::thread loc_thread(&VehicleClient::SendLocations, this, vehicle_id);
@@ -91,7 +94,7 @@ private:
 					current_package = instr;
 					has_package = true;
 					std::cout << "[INSTRUCTION] Received package " << instr.package_id()
-							  << " to " << instr.delivery_address() << " for " << instr.recipient() << std::endl;
+							  << " to " << instr.delivery_address() << std::endl;
 				}
 				cv.notify_one();
 			}
@@ -142,7 +145,7 @@ int main(int argc, char** argv) {
         std::cerr << "[!] Invalid pod name format: " << pod_name << "\n";
         return 1;
     }
-    int vehicle_id = std::stoi(pod_name.substr(pos + 1)) + 1; 
+    int vehicle_id = std::stoi(pod_name.substr(pos + 1)) + 1;
 
     std::cout << "[INFO] Vehicle client started with vehicle_id = " << vehicle_id << "\n";
 
