@@ -16,7 +16,7 @@ spec:
       containers:
       - name: vehicle-client
         image: your-docker-repo/vehicle-client:latest
-        command: ["../app/vehicle_client"]
+        command: ["/app/vehicle_client"]
         env:
         - name: VEHICLE_ID
           valueFrom:

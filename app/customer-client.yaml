@@ -15,4 +15,4 @@ spec:
       containers:
       - name: customer-client
         image: your-docker-repo/customer-client:latest
-        command: ["../app/customer_client"]
+        command: ["/app/customer_client"]

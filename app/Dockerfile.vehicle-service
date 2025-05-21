@@ -1,0 +1,11 @@
+FROM localrepo/suu-base:latest
+
+COPY ./src /app
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y libssl-dev libre2-dev libsystemd-dev pkg-config
+
+RUN make clean
+RUN make all
+
+CMD ["/app/vehicle_service"]
