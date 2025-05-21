@@ -23,4 +23,4 @@ COPY . /app
 
 RUN make all
 
-ENTRYPOINT ["/app/vehicle_service"]
+ENTRYPOINT ["../app/vehicle_service"]

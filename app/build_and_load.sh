@@ -14,10 +14,10 @@ IMAGES=(
 echo "Starting build and load for Kind cluster..."
 
 for IMAGE in "${IMAGES[@]}"; do
-  DOCKERFILE="Dockerfile.${IMAGE}"
+  DOCKERFILE="./deploy/Dockerfile.${IMAGE}"
   if [ ! -f "$DOCKERFILE" ]; then
     echo "Warning: $DOCKERFILE not found, building with default Dockerfile"
-    DOCKERFILE="Dockerfile"
+    DOCKERFILE="./deploy/Dockerfile"
   fi
 
   IMAGE_TAG="${LOCAL_REPO}/${IMAGE}:latest"
