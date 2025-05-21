@@ -11,21 +11,18 @@ IMAGES=(
   "vehicle-client"
 )
 
-echo "Starting build and load for Kind cluster..."
+echo "Starting building Docker images"
 
 for IMAGE in "${IMAGES[@]}"; do
-  DOCKERFILE="Dockerfile.${IMAGE}"
+  DOCKERFILE="./Dockerfile.${IMAGE}"
   if [ ! -f "$DOCKERFILE" ]; then
-    echo "Warning: $DOCKERFILE not found, building with default Dockerfile"
-    DOCKERFILE="Dockerfile"
+    echo "Warning: $DOCKERFILE not found"
+    continue
   fi
 
   IMAGE_TAG="${LOCAL_REPO}/${IMAGE}:latest"
   echo "Building image $IMAGE_TAG using $DOCKERFILE ..."
   docker build -f "$DOCKERFILE" -t "$IMAGE_TAG" .
-
-  echo "Loading $IMAGE_TAG into Kind cluster..."
-  kind load docker-image "$IMAGE_TAG"
 done
 
-echo "All images built and loaded into Kind."
+echo "All images built"

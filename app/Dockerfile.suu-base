@@ -1,0 +1,28 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  autoconf \
+  libtool \
+  pkg-config \
+  cmake \
+  git \
+  curl \
+  unzip \
+  && apt-get clean
+
+ENV MY_INSTALL_DIR=/usr/local
+ENV PATH="${MY_INSTALL_DIR}/bin:${PATH}"
+
+WORKDIR /opt
+RUN git clone --recurse-submodules -b v1.72.0 https://github.com/grpc/grpc.git && \
+    cd grpc && \
+    mkdir -p cmake/build && \
+    cd cmake/build && \
+    cmake -DgRPC_INSTALL=ON \
+          -DgRPC_BUILD_TESTS=OFF \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_DIR} \
+          ../.. && \
+    make -j$(nproc) && \
+    make install

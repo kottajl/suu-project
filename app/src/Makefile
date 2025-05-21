@@ -58,7 +58,10 @@ vehicle: vehicle.o vehicle_service.pb.o vehicle_service.grpc.pb.o package_servic
 %.o: %.cpp $(PROTO_GEN_HDRS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-clean:
-	rm -f *.o $(BINARIES) $(PROTO_GEN_SRCS) $(PROTO_GEN_HDRS)
+all_clean: all
+	rm -f *.o $(PROTO_GEN_SRCS) $(PROTO_GEN_HDRS) *pb.cc *pb.h
 
-.PHONY: all clean
+clean:
+	rm -f *.o $(BINARIES) $(PROTO_GEN_SRCS) $(PROTO_GEN_HDRS) *pb.cc *pb.h
+
+.PHONY: all clean all_clean
