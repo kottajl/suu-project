@@ -1,0 +1,17 @@
+# Executable files
+package_service
+vehicle_service
+manager
+customer
+vehicle
+
+# Object files
+*.o
+*.obj
+
+# Proto generated files
+*.pb.h
+*.pb.cc
+
+# MacOS trash files
+.DS_Store

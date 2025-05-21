@@ -7,9 +7,16 @@ export PKG_CONFIG_PATH
 CPPFLAGS += -I$(HOME)/.local/include `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
 LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
            $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
-           -pthread\
-           -lsystemd\
-           -ldl
+           -pthread
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    LDFLAGS += -lsystemd -ldl
+endif
+ifeq ($(UNAME_S),Darwin)
+    LDFLAGS += -framework CoreFoundation
+	LDFLAGS += -Wl,-rpath,$(shell brew --prefix zlib)/lib
+endif
 
 PROTO_SRCS=vehicle_service.proto package_service.proto
 PROTO_GEN_SRCS=vehicle_service.pb.cc vehicle_service.grpc.pb.cc package_service.pb.cc package_service.grpc.pb.cc
