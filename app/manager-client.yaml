@@ -14,5 +14,4 @@ spec:
     spec:
       containers:
       - name: manager-client
-        image: your-docker-repo/manager-client:latest
-        command: ["/app/manager_client"]
+        image: localrepo/manager-client:latest

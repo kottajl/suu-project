@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: package-service
-        image: your-docker-repo/package-service:latest
+        image: localrepo/package-service:latest
         ports:
         - containerPort: 50052
 ---
