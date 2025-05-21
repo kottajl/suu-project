@@ -72,7 +72,56 @@ Dzięki OpenTelemetry, komponenty gromadzą dane, które są następnie przesył
 
 ## Opis konfiguracji środowiska
 
+Projekt został przygotowany w języku **C++** z wykorzystaniem frameworka **gRPC** oraz instrumentacji **OpenTelemetry**. Do jego uruchomienia wymagane są:
+
+- **Docker** w wersji 20.10 lub nowszej,
+- **Docker Compose** (jeśli planujesz uruchamiać wiele usług jednocześnie),
+- **g++** i **make** (opcjonalnie – tylko w przypadku lokalnej kompilacji poza Dockerem),
+- Narzędzia do wizualizacji danych telemetrycznych, np. **Grafana** z **Tempo** i **Prometheus** (opcjonalnie).
+
+### Struktura środowiska:
+
+- Każdy komponent (np. `vehicle-service`, `customer-client`) posiada własny plik `Dockerfile`.
+- Pliki `.yaml` (`vehicle-client.yaml`, `package-service.yaml` itd.) zawierają definicje uruchomieniowe (np. dla Kubernetes).
+- Skrypty `build_base_docker_image.sh` oraz `build_docker_images.sh` służą do automatycznej budowy obrazów Dockerowych.
+- Katalog `src/` zawiera kod źródłowy w C++ oraz pliki `.proto` definiujące interfejsy gRPC.
+
 ## Metoda instalacji
+
+Instalacja projektu polega na budowie obrazów Dockerowych i ich uruchomieniu. Poniżej przedstawiono kroki wymagane do przygotowania środowiska:
+
+### Krok 1: Budowa obrazu bazowego
+
+```bash
+cd app
+./build_base_docker_image.sh
+```
+### Krok 2: Budowa wszystkich obrazów komponentów
+```bash
+./build_docker_images.sh
+```
+
+Ten skrypt tworzy obrazy dla:
+- `vehicle-service`
+- `vehicle-client`
+- `package-service`
+- `manager-client`
+- `customer-client`
+
+### Krok 3: (Opcjonalnie) Budowa pojedynczego obrazu
+Można zbudować pojedynczą usługę ręcznie:
+```bash
+docker build -f Dockerfile.vehicle-service -t suu/vehicle-service .
+```
+
+### Krok 4: Uruchomienie usług
+Możesz uruchomić kontenery ręcznie lub wykorzystać pliki `.yaml` i środowisko Kubernetes (np. `kind`, `minikube` lub chmurę).
+
+Przykład użycia `kubectl`:
+```bash
+kubectl apply -f vehicle-service.yaml
+```
+Lub uruchomienie w trybie developerskim przy użyciu `docker run`.
 
 ## Uruchamianie projektu - krok po kroku
 
