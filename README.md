@@ -37,25 +37,25 @@ Architektura systemu została przedstawiona na powyższym diagramie. System skł
 ### **Vehicle Service** (gRPC serwer) 
 Odpowiada za zarządzanie lokalizacją pojazdów.
 
--   **sendLocation()** – Client-Streaming 
+-   **sendLocation()** – Client-Streaming  
 Wywoływana przez pojazdy, pojazd wysyła strumień danych z lokalizacją do serwera.
 
--   **trackVehicle()** – Server-Streaming 
+-   **trackVehicle()** – Server-Streaming  
 Menedżer otrzymuje ciągły strumień lokalizacji wskazanego pojazdu.
 
--   **getPackagesDeliveredBy()** – Unary 
+-   **getPackagesDeliveredBy()** – Unary  
 Zwraca ile paczek zostało dostarczonych przez podany pojazd w danym dniu.
 
 ### **Package Service (gRPC serwer)** 
 Zarządza paczkami i udostępnia informacje o nich klientom.
 
--   **updatePackages()** – Bidirectional-Streaming 
+-   **updatePackages()** – Bidirectional-Streaming  
 Dwukierunkowa komunikacja z pojazdem, pojazd wysyła aktualizacje statusu przesyłek, serwer odpowiada jaką paczkę dostarczyć następnie i gdzie.
 
--   **createPackage()** – Unary 
+-   **createPackage()** – Unary  
 Wywoływana przez klienta, tworzy nową paczkę do dostarczenia – z adresem nadawcy, odbiorcy itp.
 
--   **getPackageStatus()** – Unary 
+-   **getPackageStatus()** – Unary  
 Wywoływana przez klienta, zwraca aktualny status paczki.
 
 ### **Pojazdy (gRPC klienci)** 
@@ -67,7 +67,8 @@ Może śledzić lokalizację wybranego pojazdu oraz w celu monitorowania wydajno
 ### **Klienci (gRPC klienci)** 
 Tworzą i śledzą przesyłki.
 
-Dzięki OpenTelemetry, komponenty gromadzą dane telemetryczne, które są następnie przesyłane przez OTLP w celu eksportu do narzędzia Grafana, która umożliwia wizualizację i monitorowanie aplikacji w czasie rzeczywistym. 
+### **Dane telemetryczne**
+Dzięki OpenTelemetry, komponenty gromadzą dane, które są następnie przesyłane przez OTLP w celu eksportu do narzędzia Grafana, która umożliwia wizualizację i monitorowanie aplikacji w czasie rzeczywistym. 
 
 ## Opis konfiguracji środowiska
 
