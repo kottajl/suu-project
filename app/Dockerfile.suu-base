@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as builder
 
 RUN apt-get update && apt-get install -y \
   build-essential \
@@ -26,3 +26,26 @@ RUN git clone --recurse-submodules -b v1.72.0 https://github.com/grpc/grpc.git &
           ../.. && \
     make -j$(nproc) && \
     make install
+
+RUN apt-get update && apt-get install -y libssl-dev libre2-dev libsystemd-dev pkg-config
+
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  autoconf \
+  libtool \
+  pkg-config \
+  cmake \
+  git \
+  curl \
+  unzip \
+  && apt-get clean
+
+RUN apt-get update && apt-get install -y \
+  libssl-dev libre2-dev libsystemd-dev pkg-config && \
+  apt-get clean
+
+COPY --from=builder /usr/local /usr/local
+
+ENV PATH="/usr/local/bin:${PATH}"
