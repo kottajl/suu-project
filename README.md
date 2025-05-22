@@ -75,15 +75,16 @@ Dzięki OpenTelemetry, komponenty gromadzą dane, które są następnie przesył
 Projekt został przygotowany w języku **C++** z wykorzystaniem frameworka **gRPC** oraz instrumentacji **OpenTelemetry**. Do jego uruchomienia wymagane są:
 
 - **Docker** w wersji 20.10 lub nowszej,
-- **Docker Compose** (jeśli planujesz uruchamiać wiele usług jednocześnie),
 - **g++** i **make** (opcjonalnie – tylko w przypadku lokalnej kompilacji poza Dockerem),
 - Narzędzia do wizualizacji danych telemetrycznych, np. **Grafana** z **Tempo** i **Prometheus** (opcjonalnie).
+- **kind** do lokalnego uruchomienia aplikacji na klastrze Kubernetes
 
 ### Struktura środowiska:
 
 - Każdy komponent (np. `vehicle-service`, `customer-client`) posiada własny plik `Dockerfile`.
-- Pliki `.yaml` (`vehicle-client.yaml`, `package-service.yaml` itd.) zawierają definicje uruchomieniowe (np. dla Kubernetes).
+- Pliki `.yaml` (`vehicle-client.yaml`, `package-service.yaml` itd.) zawierają definicje uruchomieniowe (dla Kubernetesa).
 - Skrypty `build_base_docker_image.sh` oraz `build_docker_images.sh` służą do automatycznej budowy obrazów Dockerowych.
+- Skrypt `deploy_kind.sh` służy do automatycznego deploymentu do lokalnego klastra `kind`
 - Katalog `src/` zawiera kod źródłowy w C++ oraz pliki `.proto` definiujące interfejsy gRPC.
 
 ## Metoda instalacji
@@ -115,13 +116,19 @@ docker build -f Dockerfile.vehicle-service -t suu/vehicle-service .
 ```
 
 ### Krok 4: Uruchomienie usług
-Możesz uruchomić kontenery ręcznie lub wykorzystać pliki `.yaml` i środowisko Kubernetes (np. `kind`, `minikube` lub chmurę).
+Można uruchomić kontenery ręcznie lub wykorzystać pliki `.yaml` i środowisko Kubernetes (np. `kind`, `minikube` lub chmurę).
 
 Przykład użycia `kubectl`:
 ```bash
 kubectl apply -f vehicle-service.yaml
 ```
 Lub uruchomienie w trybie developerskim przy użyciu `docker run`.
+
+Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje obrazy Dockerowe do klastra `kind`.
+
+```bash
+./deploy_kind.sh
+```
 
 ## Uruchamianie projektu - krok po kroku
 
