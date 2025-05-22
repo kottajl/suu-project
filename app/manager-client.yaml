@@ -15,3 +15,4 @@ spec:
       containers:
       - name: manager-client
         image: localrepo/manager-client:latest
+        imagePullPolicy: IfNotPresent

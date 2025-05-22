@@ -16,6 +16,7 @@ spec:
       containers:
       - name: vehicle-client
         image: localrepo/vehicle-client:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: VEHICLE_ID
           valueFrom:

@@ -6,4 +6,4 @@ WORKDIR /app
 RUN make clean
 RUN make all
 
-CMD ["/app/customer_client"]
+CMD ["/app/customer"]

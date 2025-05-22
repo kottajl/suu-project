@@ -15,6 +15,7 @@ spec:
       containers:
       - name: package-service
         image: localrepo/package-service:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 50052
 ---

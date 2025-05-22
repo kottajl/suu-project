@@ -15,6 +15,7 @@ spec:
       containers:
       - name: vehicle-service
         image: localrepo/vehicle-service:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 50051
 ---
