@@ -9,11 +9,22 @@ RUN apt-get update && apt-get install -y \
   git \
   curl \
   unzip \
+  libssl-dev \
+  libre2-dev \
+  libsystemd-dev \
+  libprotobuf-dev \
+  protobuf-compiler \
+  libgrpc++-dev \
+  libabsl-dev \
+  libcurl4-openssl-dev \
   && apt-get clean
 
 ENV MY_INSTALL_DIR=/usr/local
 ENV PATH="${MY_INSTALL_DIR}/bin:${PATH}"
 
+# ---------------------
+# Install gRPC
+# ---------------------
 WORKDIR /opt
 RUN git clone --recurse-submodules -b v1.72.0 https://github.com/grpc/grpc.git && \
     cd grpc && \
@@ -27,8 +38,24 @@ RUN git clone --recurse-submodules -b v1.72.0 https://github.com/grpc/grpc.git &
     make -j$(nproc) && \
     make install
 
-RUN apt-get update && apt-get install -y libssl-dev libre2-dev libsystemd-dev pkg-config
+# ---------------------
+# Install OpenTelemetry C++ SDK
+# ---------------------
+WORKDIR /opt
+RUN git clone --recurse-submodules https://github.com/open-telemetry/opentelemetry-cpp.git && \
+    cd opentelemetry-cpp && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_DIR} \
+          -DWITH_OTLP=ON \
+          -DBUILD_TESTING=OFF \
+          .. && \
+    make -j$(nproc) && \
+    make install
 
+# ---------------------
+# Final stage
+# ---------------------
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y \
@@ -40,11 +67,15 @@ RUN apt-get update && apt-get install -y \
   git \
   curl \
   unzip \
+  libssl-dev \
+  libre2-dev \
+  libsystemd-dev \
+  libprotobuf-dev \
+  protobuf-compiler \
+  libgrpc++-dev \
+  libabsl-dev \
+  libcurl4-openssl-dev \
   && apt-get clean
-
-RUN apt-get update && apt-get install -y \
-  libssl-dev libre2-dev libsystemd-dev pkg-config && \
-  apt-get clean
 
 COPY --from=builder /usr/local /usr/local
 
