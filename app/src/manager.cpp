@@ -20,51 +20,57 @@ public:
     : stub_(VehicleService::NewStub(channel)), rng_(std::random_device{}()), max_vehicle_id_(num_vehicles) {}
 
     void Run() {
-        std::uniform_int_distribution<int> vehicle_dist(1, max_vehicle_id_);
-        std::uniform_int_distribution<int> sleep_dist(3000, 6000);
+        for (int vehicle_id = 0; vehicle_id <= max_vehicle_id_; ++vehicle_id) {
+            std::thread([this, vehicle_id]() {
+                while (true) {
+                    std::cout << "\n[MANAGER] Tracking vehicle " << vehicle_id << std::endl;
 
-        while (true) {
-            int vehicle_id = vehicle_dist(rng_);
-            std::cout << "\n[MANAGER] Tracking vehicle " << vehicle_id << std::endl;
+                    TrackRequest req;
+                    req.set_vehicle_id(vehicle_id);
 
-            TrackRequest req;
-            req.set_vehicle_id(vehicle_id);
+                    ClientContext context;
+                    auto reader = stub_->trackVehicle(&context, req);
 
-            ClientContext context;
-            auto reader = stub_->trackVehicle(&context, req);
+                    Location loc;
+                    while (reader->Read(&loc)) {
+                        std::cout << "[TRACK] Vehicle " << vehicle_id
+                                << " Location: (" << loc.latitude() << ", " << loc.longitude() << ")\n";
+                    }
 
-            auto start = std::chrono::steady_clock::now();
-            Location loc;
-            while (reader->Read(&loc)) {
-                std::cout << "[TRACK] Vehicle " << vehicle_id
-                          << " Location: (" << loc.latitude() << ", " << loc.longitude() << ")\n";
+                    Status status = reader->Finish();
+                    if (!status.ok()) {
+                        std::cerr << "[!] trackVehicle failed: " << status.error_message() << std::endl;
+                    }
 
-                auto now = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::seconds>(now - start).count() > 5) {
-                    break;
+                    // Optionally wait a bit before retrying
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
                 }
-            }
-
-            Status status = reader->Finish();
-            if (!status.ok()) {
-                std::cerr << "[!] trackVehicle failed: " << status.error_message() << std::endl;
-            }
-
-            DeliveryQuery dq;
-            dq.set_vehicle_id(vehicle_id);
-
-            ClientContext ctx2;
-            DeliveryCount dc;
-            Status s2 = stub_->getPackagesDeliveredBy(&ctx2, dq, &dc);
-            if (s2.ok()) {
-                std::cout << "[DELIVERY COUNT] Vehicle " << vehicle_id
-                          << " delivered " << dc.count() << " packages today\n";
-            } else {
-                std::cerr << "[!] getPackagesDeliveredBy failed: " << s2.error_message() << std::endl;
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_dist(rng_)));
+            }).detach();
         }
+
+        // Separate thread for delivery queries
+        std::thread([this]() {
+            std::uniform_int_distribution<int> vehicle_dist(0, max_vehicle_id_);
+            std::uniform_int_distribution<int> sleep_dist(3000, 6000);
+
+            while (true) {
+                int vehicle_id = vehicle_dist(rng_);
+                DeliveryQuery dq;
+                dq.set_vehicle_id(vehicle_id);
+
+                ClientContext ctx2;
+                DeliveryCount dc;
+                Status s2 = stub_->getPackagesDeliveredBy(&ctx2, dq, &dc);
+                if (s2.ok()) {
+                    std::cout << "[DELIVERY COUNT] Vehicle " << vehicle_id
+                            << " delivered " << dc.count() << " packages today\n";
+                } else {
+                    std::cerr << "[!] getPackagesDeliveredBy failed: " << s2.error_message() << std::endl;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleep_dist(rng_)));
+            }
+        }).join();
     }
 
 private:
