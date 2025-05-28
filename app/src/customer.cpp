@@ -63,7 +63,7 @@ private:
 };
 
 int main() {
-    std::string target = "localhost:50051";
+    std::string target = "package-service:50052";
     auto channel = grpc::CreateChannel(target, grpc::InsecureChannelCredentials());
     PackageClient client(channel);
 

@@ -104,7 +104,7 @@ public:
 };
 
 int main(int argc, char** argv) {
-    std::string server_address("0.0.0.0:50051");
+    std::string server_address("0.0.0.0:50052");
     PackageServiceImpl service;
 
     ServerBuilder builder;

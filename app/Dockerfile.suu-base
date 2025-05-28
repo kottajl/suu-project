@@ -79,6 +79,6 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=builder /usr/local /usr/local
 
-EXPOSE 50051
-EXPOSE 50052
+# EXPOSE 50051
+# EXPOSE 50052
 ENV PATH="/usr/local/bin:${PATH}"

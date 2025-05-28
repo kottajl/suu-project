@@ -17,7 +17,7 @@ spec:
         image: localrepo/vehicle-service:latest
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 50051
+        - containerPort: 50052
 ---
 apiVersion: v1
 kind: Service
@@ -28,6 +28,6 @@ spec:
     app: vehicle-service
   ports:
   - protocol: TCP
-    port: 50051
-    targetPort: 50051
+    port: 50052
+    targetPort: 50052
   type: ClusterIP

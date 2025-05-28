@@ -44,10 +44,11 @@ private:
 	std::unique_ptr<PackageService::Stub> package_stub_;
 	
     struct TrackData {
-        std::condition_variable cv;
-        Location latest_location;
-        bool updated = false;
-    };
+    std::mutex track_mutex;
+    std::condition_variable cv;
+    Location latest_location;
+    bool updated = false;
+};
     std::unordered_map<int32_t, std::shared_ptr<TrackData>> tracking_data_;
 
 public:
@@ -55,28 +56,40 @@ public:
         : package_stub_(packages::PackageService::NewStub(std::static_pointer_cast<grpc::ChannelInterface>(package_channel))) {}
 		
     Status sendLocation(ServerContext* context,
-                        ServerReader<Location>* reader,
-                        Ack* response) override {
+                    ServerReader<Location>* reader,
+                    Ack* response) override {
         Location loc;
         int32_t vehicle_id = 0;
         int location_count = 0;
 
         while (reader->Read(&loc)) {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::shared_ptr<TrackData> track_data;
 
-            vehicle_id = loc.vehicle_id();
-            vehicle_locations_[vehicle_id].push_back(loc);
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                vehicle_id = loc.vehicle_id();
+                vehicle_locations_[vehicle_id].push_back(loc);
 
-            auto it = tracking_data_.find(vehicle_id);
-            if (it != tracking_data_.end()) {
-                it->second->latest_location = loc;
-                it->second->updated = true;
-                it->second->cv.notify_all();
+                auto it = tracking_data_.find(vehicle_id);
+                if (it != tracking_data_.end()) {
+                    it->second->latest_location = loc;
+                    it->second->updated = true;
+                    track_data = it->second;
+                }
             }
+
+            if (track_data) {
+                std::lock_guard<std::mutex> lock(track_data->track_mutex);
+                track_data->latest_location = loc;
+                track_data->updated = true;
+                track_data->cv.notify_all();
+            }
+
+            std::cout << "[VEHICLE_SERVICE] Received location for vehicle_id=" << loc.vehicle_id()
+                    << " at (" << loc.latitude() << ", " << loc.longitude() << ")" << std::endl;
 
             ++location_count;
         }
-
         response->set_message("Received " + std::to_string(location_count) + " locations for vehicle " + std::to_string(vehicle_id));
         std::cout << response->message() << std::endl;
 
@@ -86,58 +99,58 @@ public:
     Status trackVehicle(ServerContext* context,
                     const TrackRequest* request,
                     ServerWriter<Location>* writer) override {
-    int32_t vehicle_id = request->vehicle_id();
-    std::shared_ptr<TrackData> track_data;
+        std::cout << "[VEHICLE_SERVICE] trackVehicle called for vehicle_id=" << request->vehicle_id() << std::endl;
+        int32_t vehicle_id = request->vehicle_id();
+        std::shared_ptr<TrackData> track_data;
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
 
-        auto it = tracking_data_.find(vehicle_id);
-        if (it == tracking_data_.end()) {
-            track_data = std::make_shared<TrackData>();
-            tracking_data_[vehicle_id] = track_data;
-        } else {
-            track_data = it->second;
+            auto it = tracking_data_.find(vehicle_id);
+            if (it == tracking_data_.end()) {
+                track_data = std::make_shared<TrackData>();
+                tracking_data_[vehicle_id] = track_data;
+            } else {
+                track_data = it->second;
+            }
+
+            // Immediately send last known location
+            auto loc_it = vehicle_locations_.find(vehicle_id);
+            if (loc_it != vehicle_locations_.end() && !loc_it->second.empty()) {
+                const Location& last_loc = loc_it->second.back();
+                writer->Write(last_loc);
+                std::cout << "[VEHICLE_SERVICE] Sent location for vehicle_id=" << vehicle_id << std::endl;
+            }
         }
 
-        auto loc_it = vehicle_locations_.find(vehicle_id);
-        if (loc_it != vehicle_locations_.end() && !loc_it->second.empty()) {
-            const Location& last_loc = loc_it->second.back();
-            writer->Write(last_loc);
+        while (!context->IsCancelled()) {
+            std::unique_lock<std::mutex> track_lock(track_data->track_mutex);
+            track_data->cv.wait(track_lock, [&] {
+                return track_data->updated || context->IsCancelled();
+            });
+
+            if (context->IsCancelled()) {
+                break;
+            }
+
+            if (!writer->Write(track_data->latest_location)) {
+                break;
+            }
+
+            std::cout << "[VEHICLE_SERVICE] Sent location for vehicle_id=" << vehicle_id << std::endl;
+            track_data->updated = false;
         }
+
+        std::cout << "Streaming for vehicle " << vehicle_id << " finished." << std::endl;
+        return Status::OK;
     }
 
-    std::unique_lock<std::mutex> lock(mutex_, std::defer_lock);
-
-    while (!context->IsCancelled()) {
-        lock.lock();
-
-        track_data->cv.wait(lock, [&] {
-            return track_data->updated || context->IsCancelled();
-        });
-
-        if (context->IsCancelled()) {
-            lock.unlock();
-            break;
-        }
-
-        if (!writer->Write(track_data->latest_location)) {
-            lock.unlock();
-            break;
-        }
-
-        track_data->updated = false;
-        lock.unlock();
-    }
-
-    std::cout << "Streaming for vehicle " << vehicle_id << " finished." << std::endl;
-    return Status::OK;
-}
 
     Status getPackagesDeliveredBy(ServerContext* context,
                               const DeliveryQuery* request,
                               DeliveryCount* response) override {
-		VehicleQuery query;
+		std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
+        VehicleQuery query;
 		query.set_vehicle_id(request->vehicle_id());
 
 		grpc::ClientContext client_context;
@@ -159,7 +172,7 @@ public:
 
 int main(int argc, char** argv) {
     std::string server_address("0.0.0.0:50052");
-    std::string package_service_address("localhost:50051");
+    std::string package_service_address("package-service:50052");
 	auto package_channel = grpc::CreateChannel(package_service_address, grpc::InsecureChannelCredentials());
 	
     VehicleServiceImpl service(package_channel);

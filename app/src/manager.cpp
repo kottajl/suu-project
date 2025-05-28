@@ -85,9 +85,9 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::string server_addr = "localhost:50052";
+    std::string server_addr = "vehicle-service:50052";
     auto channel = grpc::CreateChannel(server_addr, grpc::InsecureChannelCredentials());
-    ManagerClient client(channel, num_vehicles);
+    ManagerClient client(channel, num_vehicles-1);
     client.Run();
 
     return 0;

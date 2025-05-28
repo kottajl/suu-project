@@ -66,6 +66,7 @@ private:
                 std::cerr << "[!] Failed to write location to stream." << std::endl;
                 break;
             }
+            std::cout << "[CLIENT] Wrote location for vehicle_id=" << vehicle_id << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds(2));
         }
@@ -145,12 +146,12 @@ int main(int argc, char** argv) {
         std::cerr << "[!] Invalid pod name format: " << pod_name << "\n";
         return 1;
     }
-    int vehicle_id = std::stoi(pod_name.substr(pos + 1)) + 1;
+    int vehicle_id = std::stoi(pod_name.substr(pos + 1));
 
     std::cout << "[INFO] Vehicle client started with vehicle_id = " << vehicle_id << "\n";
 
-    std::string vehicle_addr = "localhost:50052";
-    std::string package_addr = "localhost:50051";
+    std::string vehicle_addr = "vehicle-service:50052";
+    std::string package_addr = "package-service:50052";
 
     VehicleClient client(
         grpc::CreateChannel(vehicle_addr, grpc::InsecureChannelCredentials()),
