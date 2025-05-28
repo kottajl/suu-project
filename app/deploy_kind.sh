@@ -3,7 +3,7 @@
 set -e
 
 if ! kind get clusters | grep -q '^kind$'; then
-  echo "Kind cluster not found. Use kind create cluster"
+  echo "Kind cluster not found. Use "kind create cluster --name kind""
   exit 1
 fi
 
@@ -30,3 +30,9 @@ echo "Deploying manager client..."
 kubectl apply -f manager-client.yaml
 
 echo "All components deployed successfully!"
+
+echo "To list all pods, run: kubectl get pods"
+
+echo "To see logs for a specific pod, run: kubectl logs <pod-name>"
+
+echo "To access a pod's shell, run: kubectl exec -it <pod-name> -- /bin/sh"
