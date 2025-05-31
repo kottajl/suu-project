@@ -16,9 +16,11 @@ kind load docker-image localrepo/package-service:latest localrepo/vehicle-servic
 
 echo "Deploying package service..."
 kubectl apply -f package-service.yaml
+kubectl rollout status deployment package-service -n package-service --timeout=120s || true
 
 echo "Deploying vehicle service..."
 kubectl apply -f vehicle-service.yaml
+kubectl rollout status deployment vehicle-service -n vehicle-service --timeout=120s || true
 
 echo "Deploying customer clients..."
 kubectl apply -f customer-client.yaml
