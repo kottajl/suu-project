@@ -67,18 +67,19 @@ public:
     Status sendLocation(ServerContext* context,
                     ServerReader<Location>* reader,
                     Ack* response) override {
-		
-		auto provider = trace_api::Provider::GetTracerProvider();
-		auto tracer = provider->GetTracer("example_tracer");
-		auto span = tracer->StartSpan("main_span");
-		span->AddEvent("Starting processing received locations");
-		span->SetAttribute("sendLocation.status", "running");
 	
         Location loc;
         int32_t vehicle_id = 0;
         int location_count = 0;
 
         while (reader->Read(&loc)) {
+
+            auto provider = trace_api::Provider::GetTracerProvider();
+            auto tracer = provider->GetTracer("example_tracer");
+            auto span = tracer->StartSpan("main_span");
+            span->AddEvent("Starting processing received locations");
+            span->SetAttribute("sendLocation.status", "running");
+
             std::shared_ptr<TrackData> track_data;
 
             {
@@ -105,12 +106,12 @@ public:
                     << " at (" << loc.latitude() << ", " << loc.longitude() << ")" << std::endl;
 
             ++location_count;
+
+            span->AddEvent("Finished processing");
+            span->End();
         }
         response->set_message("Received " + std::to_string(location_count) + " locations for vehicle " + std::to_string(vehicle_id));
         std::cout << response->message() << std::endl;
-		
-		span->AddEvent("Finished processing");
-		span->End();
 
         return Status::OK;
     }
@@ -192,7 +193,7 @@ public:
 void initTracer()
 {
     otlp_exporter::OtlpGrpcExporterOptions options;
-    options.endpoint = "otel-collector:4317";
+    options.endpoint = "simplest-collector:4317";
     options.use_ssl_credentials = false;
 
     auto exporter = std::unique_ptr<trace_sdk::SpanExporter>(

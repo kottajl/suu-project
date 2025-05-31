@@ -17,3 +17,5 @@ kubectl rollout status deployment grafana -n grafana --timeout=120s || true
 kubectl get secret --namespace grafana grafana -o jsonpath="{.data.admin-password}" | base64 --decode
 
 kubectl port-forward svc/grafana 3000:80 -n grafana
+
+#ip tempo w grafanie - http://tempo.tempo.svc.cluster.local:3100
