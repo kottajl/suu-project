@@ -42,7 +42,6 @@ private:
     std::unique_ptr<VehicleService::Stub> vehicle_stub_;
     std::unique_ptr<PackageService::Stub> package_stub_;
 
-    std::vector<PackageInstruction> active_packages_;
     std::mutex packages_mutex_;
 
     void SendLocations(int vehicle_id) {
@@ -78,59 +77,51 @@ private:
         }
     }
 
-	void UpdatePackages(int vehicle_id) {
-		ClientContext context;
-		auto stream = package_stub_->updatePackages(&context);
+    void UpdatePackages(int vehicle_id) {
+        ClientContext context;
+        auto stream = package_stub_->updatePackages(&context);
 
-		std::mutex mtx;
-		std::condition_variable cv;
-		bool has_package = false;
-		PackageInstruction current_package;
+        // Initial dummy update to ask for first package
+        PackageUpdate dummy;
+        dummy.set_vehicle_id(vehicle_id);
+        dummy.set_status(PackageStatus::DELIVERED); // Pretend we just delivered one
+        dummy.set_package_id(-1); // Dummy ID
+        stream->Write(dummy);
 
-		std::thread reader([&]() {
-			PackageInstruction instr;
-			while (stream->Read(&instr)) {
-				{
-					std::lock_guard<std::mutex> lock(mtx);
-					current_package = instr;
-					has_package = true;
-					std::cout << "[INSTRUCTION] Received package " << instr.package_id()
-							  << " to " << instr.delivery_address() << std::endl;
-				}
-				cv.notify_one();
-			}
-		});
+        PackageInstruction instr;
 
-		std::thread writer([&]() {
-			while (true) {
-				std::unique_lock<std::mutex> lock(mtx);
-				cv.wait(lock, [&]() { return has_package; });
+        std::default_random_engine rng(std::random_device{}());
+        std::uniform_int_distribution<int> delay_dist(5, 10);
 
-				PackageUpdate update;
-				update.set_vehicle_id(vehicle_id);
-				update.set_package_id(current_package.package_id());
-				update.set_status(PackageStatus::DELIVERED);
+        while (stream->Read(&instr)) {
+            int pkg_id = instr.package_id();
+            std::string address = instr.delivery_address();
 
-				std::cout << "[PKG] Delivering package " << current_package.package_id() << std::endl;
+            std::cout << "[CLIENT] Received package " << pkg_id << " to deliver at: " << address << std::endl;
 
-				if (!stream->Write(update)) {
-					std::cerr << "[!] Failed to send package delivery update." << std::endl;
-					break;
-				}
+            int delay = delay_dist(rng);
+            std::cout << "[CLIENT] Delivering in " << delay << " seconds...\n";
+            std::this_thread::sleep_for(std::chrono::seconds(delay));
 
-				has_package = false;
-			}
-		});
+            PackageUpdate update;
+            update.set_vehicle_id(vehicle_id);
+            update.set_package_id(pkg_id);
+            update.set_status(PackageStatus::DELIVERED);
 
-		reader.join();
-		stream->WritesDone();
-		writer.join();
+            if (!stream->Write(update)) {
+                std::cerr << "[!] Failed to send update for package " << pkg_id << std::endl;
+                break;
+            }
 
-		Status status = stream->Finish();
-		if (!status.ok()) {
-			std::cerr << "[!] Package update stream failed: " << status.error_message() << std::endl;
-		}
-	}
+            std::cout << "[CLIENT] Delivered package " << pkg_id << ", waiting for next...\n";
+        }
+
+        stream->WritesDone();
+        Status status = stream->Finish();
+        if (!status.ok()) {
+            std::cerr << "[!] Stream finished with error: " << status.error_message() << std::endl;
+        }
+    }
 };
 
 int main(int argc, char** argv) {
