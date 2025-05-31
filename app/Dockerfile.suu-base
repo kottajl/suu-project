@@ -48,7 +48,10 @@ RUN git clone --recurse-submodules https://github.com/open-telemetry/opentelemet
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=${MY_INSTALL_DIR} \
           -DWITH_OTLP=ON \
+          -DWITH_OTLP_GRPC=ON \
+          -DWITH_OTLP_HTTP=ON \
           -DBUILD_TESTING=OFF \
+          -DOPENTELEMETRY_INSTALL=ON \
           .. && \
     make -j$(nproc) && \
     make install

@@ -194,7 +194,6 @@ void initTracer()
     otlp_exporter::OtlpGrpcExporterOptions options;
     options.endpoint = "otel-collector:4317";
     options.use_ssl_credentials = false;
-	options.debug = true;
 
     auto exporter = std::unique_ptr<trace_sdk::SpanExporter>(
         new otlp_exporter::OtlpGrpcExporter(options));
@@ -202,7 +201,7 @@ void initTracer()
     auto processor = std::unique_ptr<trace_sdk::SpanProcessor>(
         new trace_sdk::SimpleSpanProcessor(std::move(exporter)));
 
-    auto provider = nostd::shared_ptr<trace_api::TracerProvider>(
+    auto provider = std::shared_ptr<trace_api::TracerProvider>(
         new trace_sdk::TracerProvider(std::move(processor)));
 
     trace_api::Provider::SetTracerProvider(provider);

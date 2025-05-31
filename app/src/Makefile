@@ -7,7 +7,10 @@ export PKG_CONFIG_PATH
 CPPFLAGS += -I$(HOME)/.local/include `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
 LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
            $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
-           -pthread
+           -pthread \
+           -lopentelemetry_common -lopentelemetry_logs -lopentelemetry_proto -lopentelemetry_resources -lopentelemetry_trace -lopentelemetry_version -lopentelemetry_exporter_in_memory -lopentelemetry_exporter_ostream_logs \
+           -lopentelemetry_exporter_ostream_span -lopentelemetry_otlp_recordable -lopentelemetry_http_client_curl -lopentelemetry_exporter_otlp_grpc -lopentelemetry_exporter_otlp_grpc_client -lopentelemetry_exporter_otlp_grpc_log \
+           -lopentelemetry_exporter_otlp_http_client -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_http_log
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
