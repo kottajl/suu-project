@@ -20,6 +20,8 @@ spec:
         send_batch_size: 10000
         timeout: 10s
     exporters:
+      logging:
+        loglevel: debug
       otlp:
         endpoint: tempo.tempo.svc.cluster.local:4317
         tls:
@@ -29,4 +31,4 @@ spec:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [otlp]
+          exporters: [otlp, logging]

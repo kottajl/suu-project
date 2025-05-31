@@ -15,6 +15,11 @@
 #include "vehicle_service.grpc.pb.h"
 #include "package_service.grpc.pb.h"
 
+#include <opentelemetry/exporters/otlp/otlp_grpc_exporter.h>
+#include <opentelemetry/sdk/trace/simple_processor.h>
+#include <opentelemetry/sdk/trace/tracer_provider.h>
+#include <opentelemetry/trace/provider.h>
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -30,6 +35,10 @@ using vehicle::DeliveryQuery;
 using vehicle::DeliveryCount;
 using packages::PackageService;
 using packages::VehicleQuery;
+
+namespace trace_sdk = opentelemetry::sdk::trace;
+namespace trace_api = opentelemetry::trace;
+namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 struct VehicleLocation {
     double latitude;
@@ -58,6 +67,13 @@ public:
     Status sendLocation(ServerContext* context,
                     ServerReader<Location>* reader,
                     Ack* response) override {
+		
+		auto provider = trace_api::Provider::GetTracerProvider();
+		auto tracer = provider->GetTracer("example_tracer");
+		auto span = tracer->StartSpan("main_span");
+		span->AddEvent("Starting processing received locations");
+		span->SetAttribute("sendLocation.status", "running");
+	
         Location loc;
         int32_t vehicle_id = 0;
         int location_count = 0;
@@ -92,6 +108,9 @@ public:
         }
         response->set_message("Received " + std::to_string(location_count) + " locations for vehicle " + std::to_string(vehicle_id));
         std::cout << response->message() << std::endl;
+		
+		span->AddEvent("Finished processing");
+		span->End();
 
         return Status::OK;
     }
@@ -170,9 +189,29 @@ public:
 	}
 };
 
+void initTracer()
+{
+    otlp_exporter::OtlpGrpcExporterOptions options;
+    options.endpoint = "otel-collector:4317";
+    options.use_ssl_credentials = false;
+	options.debug = true;
+
+    auto exporter = std::unique_ptr<trace_sdk::SpanExporter>(
+        new otlp_exporter::OtlpGrpcExporter(options));
+
+    auto processor = std::unique_ptr<trace_sdk::SpanProcessor>(
+        new trace_sdk::SimpleSpanProcessor(std::move(exporter)));
+
+    auto provider = nostd::shared_ptr<trace_api::TracerProvider>(
+        new trace_sdk::TracerProvider(std::move(processor)));
+
+    trace_api::Provider::SetTracerProvider(provider);
+}
+
 int main(int argc, char** argv) {
     std::string server_address("0.0.0.0:50052");
     std::string package_service_address("package-service:50052");
+	initTracer();
 	auto package_channel = grpc::CreateChannel(package_service_address, grpc::InsecureChannelCredentials());
 	
     VehicleServiceImpl service(package_channel);
