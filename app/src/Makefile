@@ -4,13 +4,14 @@ GRPC_CPP_PLUGIN ?= `which $(GRPC_CPP_PLUGIN1)`
 PKG_CONFIG_PATH := $(HOME)/.local/lib/pkgconfig
 export PKG_CONFIG_PATH
 
-CPPFLAGS += -I$(HOME)/.local/include `pkg-config --cflags protobuf grpc absl_flags absl_flags_parse`
-LDFLAGS += -L/usr/local/lib `pkg-config --libs --static protobuf grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
+CPPFLAGS += -I$(HOME)/.local/include -I/usr/local/include/opentelemetry `pkg-config --cflags protobuf grpc grpc++ absl_flags absl_flags_parse`
+LDFLAGS += -L/usr/local/lib \
+		-lopentelemetry_exporter_otlp_grpc -lopentelemetry_exporter_otlp_grpc_client -lopentelemetry_exporter_otlp_grpc_log -lopentelemetry_otlp_recordable -lopentelemetry_logs -lopentelemetry_proto -lopentelemetry_proto_grpc -lopentelemetry_resources -lopentelemetry_trace -lopentelemetry_version -lopentelemetry_common \
+	   `pkg-config --libs --static protobuf grpc grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
            $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
            -pthread \
-           -lopentelemetry_common -lopentelemetry_logs -lopentelemetry_proto -lopentelemetry_resources -lopentelemetry_trace -lopentelemetry_version -lopentelemetry_exporter_in_memory -lopentelemetry_exporter_ostream_logs \
-           -lopentelemetry_exporter_ostream_span -lopentelemetry_otlp_recordable -lopentelemetry_http_client_curl -lopentelemetry_exporter_otlp_grpc -lopentelemetry_exporter_otlp_grpc_client -lopentelemetry_exporter_otlp_grpc_log \
-           -lopentelemetry_exporter_otlp_http_client -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_http_log
+
+
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
