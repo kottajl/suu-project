@@ -49,6 +49,11 @@
 #include "opentelemetry/sdk/metrics/view/meter_selector_factory.h"
 #include "opentelemetry/sdk/metrics/view/view_factory.h"
 
+#include "opentelemetry/exporters/otlp/otlp_grpc_log_record_exporter_factory.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_log_record_exporter_options.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_options.h"
+#include <opentelemetry/sdk/resource/resource.h>
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -72,6 +77,7 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 namespace metrics_sdk      = opentelemetry::sdk::metrics;
 namespace metrics_api      = opentelemetry::metrics;
+namespace resource  = opentelemetry::sdk::resource;
 
 namespace otlp = opentelemetry::exporter::otlp;
 
@@ -98,9 +104,19 @@ private:
 };
     std::unordered_map<int32_t, std::shared_ptr<TrackData>> tracking_data_;
 
+    opentelemetry::nostd::shared_ptr<trace_api::Tracer> tracer_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Meter> meter_;
+    opentelemetry::nostd::shared_ptr<logs_api::Logger> logger_;
+
 public:
 	VehicleServiceImpl(std::shared_ptr<grpc::Channel> package_channel)
-        : package_stub_(packages::PackageService::NewStub(std::static_pointer_cast<grpc::ChannelInterface>(package_channel))) {}
+    : package_stub_(packages::PackageService::NewStub(std::static_pointer_cast<grpc::ChannelInterface>(package_channel))) {
+
+        tracer_ = trace_api::Provider::GetTracerProvider()->GetTracer("vehicle_service");
+        meter_ = metrics_api::Provider::GetMeterProvider()->GetMeter("vehicle_service");
+        logger_ = logs_api::Provider::GetLoggerProvider()->GetLogger("vehicle_service");
+
+    }
 
     Status sendLocation(ServerContext* context,
                     ServerReader<Location>* reader,
@@ -111,12 +127,12 @@ public:
         int location_count = 0;
 
         while (reader->Read(&loc)) {
-
-            auto provider = trace_api::Provider::GetTracerProvider();
-            auto tracer = provider->GetTracer("example_tracer");
-            auto span = tracer->StartSpan("main_span");
-            span->AddEvent("Starting processing received locations");
-            span->SetAttribute("sendLocation.status", "running");
+            auto span = tracer_->StartSpan("process_location");
+            span->AddEvent("Starting processing received location");
+            span->SetAttribute("vehicle_id", loc.vehicle_id());
+            span->SetAttribute("latitude", loc.latitude());
+            span->SetAttribute("longitude", loc.longitude());
+            auto ctx = span->GetContext();
 
             std::shared_ptr<TrackData> track_data;
 
@@ -142,6 +158,8 @@ public:
 
             std::cout << "[VEHICLE_SERVICE] Received location for vehicle_id=" << loc.vehicle_id()
                     << " at (" << loc.latitude() << ", " << loc.longitude() << ")" << std::endl;
+            logger_->EmitLogRecord(opentelemetry::logs::Severity::kDebug, "Received location for vehicle_id=" + std::to_string(loc.vehicle_id()) + " at (" + std::to_string(loc.latitude()) + ", " + std::to_string(loc.longitude()) + ")",
+                                   ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
 
             ++location_count;
 
@@ -150,6 +168,7 @@ public:
         }
         response->set_message("Received " + std::to_string(location_count) + " locations for vehicle " + std::to_string(vehicle_id));
         std::cout << response->message() << std::endl;
+        logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, response->message());
 
         return Status::OK;
     }
@@ -157,49 +176,50 @@ public:
     Status trackVehicle(ServerContext* context,
                     const TrackRequest* request,
                     ServerWriter<Location>* writer) override {
+
+        auto span = tracer_->StartSpan("track_vehicle");
+        span->AddEvent("Starting vehicle tracking");
+        span->SetAttribute("vehicle_id", request->vehicle_id());
+        auto ctx = span->GetContext();
+
+        auto recordable = logger_->CreateLogRecord();
+        recordable->SetSeverity(opentelemetry::logs::Severity::kInfo);
+        recordable->SetBody("trackVehicle called for vehicle_id=" + std::to_string(request->vehicle_id()));
+        recordable->SetTimestamp(opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
+        recordable->SetTraceId(ctx.trace_id());
+        recordable->SetSpanId(ctx.span_id());
+        recordable->SetTraceFlags(ctx.trace_flags());
+        logger_->EmitLogRecord(std::move(recordable));
+
         std::cout << "[VEHICLE_SERVICE] trackVehicle called for vehicle_id=" << request->vehicle_id() << std::endl;
+
+        std::default_random_engine rng(std::random_device{}());
+        std::uniform_real_distribution<double> lat_dist(50.0, 52.0);
+        std::uniform_real_distribution<double> lon_dist(18.0, 20.0);
+
         int32_t vehicle_id = request->vehicle_id();
-        std::shared_ptr<TrackData> track_data;
+        int amount = rand() % 10;
+        for (int i = 0; i < amount; i++) {
 
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
+            Location loc;
+            loc.set_vehicle_id(vehicle_id);
+            loc.set_latitude(lat_dist(rng));
+            loc.set_longitude(lon_dist(rng));
 
-            auto it = tracking_data_.find(vehicle_id);
-            if (it == tracking_data_.end()) {
-                track_data = std::make_shared<TrackData>();
-                tracking_data_[vehicle_id] = track_data;
-            } else {
-                track_data = it->second;
-            }
+            writer->Write(loc);
 
-            // Immediately send last known location
-            auto loc_it = vehicle_locations_.find(vehicle_id);
-            if (loc_it != vehicle_locations_.end() && !loc_it->second.empty()) {
-                const Location& last_loc = loc_it->second.back();
-                writer->Write(last_loc);
-                std::cout << "[VEHICLE_SERVICE] Sent location for vehicle_id=" << vehicle_id << std::endl;
-            }
-        }
-
-        while (!context->IsCancelled()) {
-            std::unique_lock<std::mutex> track_lock(track_data->track_mutex);
-            track_data->cv.wait(track_lock, [&] {
-                return track_data->updated || context->IsCancelled();
-            });
-
-            if (context->IsCancelled()) {
-                break;
-            }
-
-            if (!writer->Write(track_data->latest_location)) {
-                break;
-            }
-
+            span->AddEvent("Sending location " + std::to_string(loc.latitude()) + ", " + std::to_string(loc.longitude()));
+            logger_->EmitLogRecord(opentelemetry::logs::Severity::kDebug, "Sent location for vehicle_id=" + std::to_string(vehicle_id),
+                                   ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
             std::cout << "[VEHICLE_SERVICE] Sent location for vehicle_id=" << vehicle_id << std::endl;
-            track_data->updated = false;
         }
 
         std::cout << "Streaming for vehicle " << vehicle_id << " finished." << std::endl;
+        logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "Streaming for vehicle " + std::to_string(vehicle_id) + " finished",
+                               ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
+
+        span->AddEvent("Finished tracking");
+        span->End();
         return Status::OK;
     }
 
@@ -207,7 +227,15 @@ public:
     Status getPackagesDeliveredBy(ServerContext* context,
                               const DeliveryQuery* request,
                               DeliveryCount* response) override {
-		std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
+
+        auto span = tracer_->StartSpan("get_packages_delivered_by");
+        span->AddEvent("Calling package_service to get packages count");
+        span->SetAttribute("vehicle_id", request->vehicle_id());
+        auto ctx = span->GetContext();
+
+        std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
+        logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "getPackagesDeliveredBy called for vehicle_id=" + std::to_string(request->vehicle_id()),
+                               ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
         VehicleQuery query;
 		query.set_vehicle_id(request->vehicle_id());
 
@@ -217,13 +245,23 @@ public:
 		grpc::Status status = package_stub_->getDeliveredCountByVehicle(&client_context, query, &pkg_response);
 
 		if (!status.ok()) {
-			std::cerr << "Failed to query PackageService: " << status.error_message() << std::endl;
+            std::cerr << "Failed to query PackageService: " << status.error_message() << std::endl;
+            logger_->EmitLogRecord(opentelemetry::logs::Severity::kError, "Failed to query PackageService: " + status.error_message(),
+                                   ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
+            span->AddEvent("Error occured, PackageService not responding");
+            span->End();
 			return grpc::Status(grpc::StatusCode::UNAVAILABLE, "PackageService not responding");
-		}
+        }
+        span->AddEvent("package_service called succesfully");
 
-		response->set_count(pkg_response.count());
-		std::cout << "Queried delivered count from PackageService: " << pkg_response.count() << std::endl;
+        response->set_count(pkg_response.count());
+        span->SetAttribute("package_count", pkg_response.count());
+        std::cout << "Queried delivered count from PackageService: " << pkg_response.count() << std::endl;
+        logger_->EmitLogRecord(opentelemetry::logs::Severity::kError, "Queried delivered count from PackageService: " + std::to_string(pkg_response.count()),
+                               ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
 
+        span->AddEvent("Responded with the delivered count");
+        span->End();
 		return grpc::Status::OK;
 	}
 };
@@ -234,6 +272,12 @@ void initTracer()
     options.endpoint = "simplest-collector:4317";
     options.use_ssl_credentials = false;
 
+    auto resource_attributes = resource::Resource::Create({
+        {"service.name", "vehicle-service"},
+        {"service.version", "1.0.0"},
+        {"deployment.environment", "dev"}
+    });
+
     auto exporter = std::unique_ptr<trace_sdk::SpanExporter>(
         new otlp_exporter::OtlpGrpcExporter(options));
 
@@ -241,7 +285,7 @@ void initTracer()
         new trace_sdk::SimpleSpanProcessor(std::move(exporter)));
 
     auto provider = std::shared_ptr<trace_api::TracerProvider>(
-        new trace_sdk::TracerProvider(std::move(processor)));
+        new trace_sdk::TracerProvider(std::move(processor), resource_attributes));
 
     trace_api::Provider::SetTracerProvider(provider);
 }
@@ -269,30 +313,41 @@ void AddLatencyView(opentelemetry::sdk::metrics::MeterProvider* provider,
 
 void initMetrics()
 {
-    otlp::OtlpHttpMetricExporterOptions opts;
-    opts.url = "simplest-collector:4318/v1/metrics";
-    auto exporter = otlp::OtlpHttpMetricExporterFactory::Create(opts);
+    otlp::OtlpGrpcMetricExporterOptions opts;
+    opts.endpoint = "simplest-collector:4317";
+    opts.use_ssl_credentials = false;
+
+    auto exporter = otlp::OtlpGrpcMetricExporterFactory::Create(opts);
+
     metrics_sdk::PeriodicExportingMetricReaderOptions reader_options;
     reader_options.export_interval_millis = std::chrono::milliseconds(1000);
     reader_options.export_timeout_millis  = std::chrono::milliseconds(500);
+
     auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(exporter), reader_options);
     auto context = metrics_sdk::MeterContextFactory::Create();
     context->AddMetricReader(std::move(reader));
+
     auto u_provider = metrics_sdk::MeterProviderFactory::Create(std::move(context));
     AddLatencyView(u_provider.get(), "grpc.server.call.duration", "s");
+
     std::shared_ptr<metrics_api::MeterProvider> provider(std::move(u_provider));
     metrics_api::Provider::SetMeterProvider(provider);
-
 }
 
 void initLogger()
 {
-    otlp::OtlpHttpLogRecordExporterOptions opts;
-    opts.url = "simplest-collector:4318/v1/logs";
-    auto exporter  = otlp::OtlpHttpLogRecordExporterFactory::Create(opts);
+    auto resource_attributes = resource::Resource::Create({
+        {"service.name", "vehicle-service"},
+        {"service.version", "1.0.0"},
+        {"deployment.environment", "dev"}
+    });
+    otlp::OtlpGrpcLogRecordExporterOptions opts;
+    opts.endpoint = "simplest-collector:4317";
+    opts.use_ssl_credentials = false;
+    auto exporter = otlp::OtlpGrpcLogRecordExporterFactory::Create(opts);
     auto processor = logs_sdk::SimpleLogRecordProcessorFactory::Create(std::move(exporter));
     std::shared_ptr<logs_api::LoggerProvider> provider =
-    logs_sdk::LoggerProviderFactory::Create(std::move(processor));
+    logs_sdk::LoggerProviderFactory::Create(std::move(processor), resource_attributes);
     logs_api::Provider::SetLoggerProvider(provider);
 }
 
