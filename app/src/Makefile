@@ -6,7 +6,7 @@ export PKG_CONFIG_PATH
 
 CPPFLAGS += -I$(HOME)/.local/include -I/usr/local/include/opentelemetry `pkg-config --cflags protobuf grpc grpc++ absl_flags absl_flags_parse`
 LDFLAGS += -L/usr/local/lib \
-		-lopentelemetry_exporter_otlp_grpc -lopentelemetry_exporter_otlp_grpc_client -lopentelemetry_exporter_otlp_grpc_log -lopentelemetry_otlp_recordable -lopentelemetry_logs -lopentelemetry_proto -lopentelemetry_proto_grpc -lopentelemetry_resources -lopentelemetry_trace -lopentelemetry_version -lopentelemetry_common \
+		-lopentelemetry_exporter_otlp_http_metric -lopentelemetry_exporter_otlp_http_log -lopentelemetry_exporter_otlp_http_client -lopentelemetry_http_client_curl -lopentelemetry_exporter_otlp_http -lopentelemetry_exporter_otlp_grpc -lopentelemetry_exporter_otlp_grpc_client -lopentelemetry_exporter_otlp_grpc_log -lopentelemetry_otlp_recordable -lopentelemetry_logs -lopentelemetry_proto -lopentelemetry_proto_grpc -lopentelemetry_resources -lopentelemetry_metrics -lopentelemetry_trace -lopentelemetry_version -lopentelemetry_common -lcurl \
 	   `pkg-config --libs --static protobuf grpc grpc++ absl_flags absl_flags_parse absl_log_initialize $(PROTOBUF_ABSL_DEPS)`\
            $(PROTOBUF_UTF8_RANGE_LINK_LIBS) \
            -pthread \
