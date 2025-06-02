@@ -1,19 +1,22 @@
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
-helm install tempo grafana/tempo \
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm upgrade --install tempo grafana/tempo \
   --namespace tempo \
   --create-namespace
 
-helm install loki grafana/loki -f loki-values.yaml \
+helm upgrade --install loki grafana/loki -f loki-values.yaml \
   --namespace loki \
   --create-namespace
 
-helm install prometheus prometheus-community/prometheus \
+helm upgrade --install prometheus prometheus-community/prometheus \
   --namespace prometheus \
   --create-namespace
 
-helm install grafana grafana/grafana \
+helm upgrade --install grafana grafana/grafana \
     --namespace grafana \
     --create-namespace \
     --set adminPassword='admin' \
