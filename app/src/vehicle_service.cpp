@@ -182,14 +182,8 @@ public:
         span->SetAttribute("vehicle_id", request->vehicle_id());
         auto ctx = span->GetContext();
 
-        auto recordable = logger_->CreateLogRecord();
-        recordable->SetSeverity(opentelemetry::logs::Severity::kInfo);
-        recordable->SetBody("trackVehicle called for vehicle_id=" + std::to_string(request->vehicle_id()));
-        recordable->SetTimestamp(opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
-        recordable->SetTraceId(ctx.trace_id());
-        recordable->SetSpanId(ctx.span_id());
-        recordable->SetTraceFlags(ctx.trace_flags());
-        logger_->EmitLogRecord(std::move(recordable));
+        logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "trackVehicle called for vehicle_id=" + std::to_string(request->vehicle_id()),
+                               ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
 
         std::cout << "[VEHICLE_SERVICE] trackVehicle called for vehicle_id=" << request->vehicle_id() << std::endl;
 

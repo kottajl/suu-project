@@ -31,3 +31,4 @@ kubectl port-forward svc/grafana 3000:80 -n grafana
 
 #ip tempo w grafanie - http://tempo.tempo.svc.cluster.local:3100
 #ip lokiego w grafanie - http://loki.loki.svc.cluster.local:3100
+#ip prometheusa w grafanie - http://prometheus-server.prometheus.svc.cluster.local:80
