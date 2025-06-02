@@ -15,7 +15,7 @@ helm upgrade --install loki grafana/loki -f loki-values.yaml \
 helm upgrade --install prometheus prometheus-community/prometheus \
   --namespace prometheus \
   --create-namespace \
-  -f prometheus-values.yaml
+  --values prometheus-values.yaml
 
 helm upgrade --install grafana grafana/grafana \
     --namespace grafana \
@@ -33,3 +33,5 @@ kubectl port-forward svc/grafana 3000:80 -n grafana
 #ip tempo w grafanie - http://tempo.tempo.svc.cluster.local:3100
 #ip lokiego w grafanie - http://loki.loki.svc.cluster.local:3100
 #ip prometheusa w grafanie - http://prometheus-server.prometheus.svc.cluster.local:80
+
+#kubectl port-forward -n prometheus svc/prometheus-server 9090:80
