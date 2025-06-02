@@ -1,0 +1,8 @@
+server:
+  global:
+    scrape_interval: 15s
+
+  additionalScrapeConfigs:
+    - job_name: 'simplest-collector'
+      static_configs:
+        - targets: ['http://simplest-collector.default.svc.cluster.local:9464']

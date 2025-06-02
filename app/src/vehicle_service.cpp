@@ -55,6 +55,8 @@
 #include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_options.h"
 #include <opentelemetry/sdk/resource/resource.h>
 
+#include "opentelemetry/metrics/sync_instruments.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -108,6 +110,8 @@ private:
     opentelemetry::nostd::shared_ptr<metrics_api::Meter> meter_;
     opentelemetry::nostd::shared_ptr<logs_api::Logger> logger_;
 
+    opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Counter<double>> get_packages_delivered_counter;
+
 public:
 	VehicleServiceImpl(std::shared_ptr<grpc::Channel> package_channel)
     : package_stub_(packages::PackageService::NewStub(std::static_pointer_cast<grpc::ChannelInterface>(package_channel))) {
@@ -115,6 +119,8 @@ public:
         tracer_ = trace_api::Provider::GetTracerProvider()->GetTracer("vehicle_service");
         meter_ = metrics_api::Provider::GetMeterProvider()->GetMeter("vehicle_service");
         logger_ = logs_api::Provider::GetLoggerProvider()->GetLogger("vehicle_service");
+
+        get_packages_delivered_counter = meter_->CreateDoubleCounter("get_packages_delivered_requests_total");
 
     }
 
@@ -222,10 +228,16 @@ public:
                               const DeliveryQuery* request,
                               DeliveryCount* response) override {
 
+
         auto span = tracer_->StartSpan("get_packages_delivered_by");
         span->AddEvent("Calling package_service to get packages count");
         span->SetAttribute("vehicle_id", request->vehicle_id());
         auto ctx = span->GetContext();
+
+
+        std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(request->vehicle_id())}};
+        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+        get_packages_delivered_counter->Add(1.0, labelkv);
 
         std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
         logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "getPackagesDeliveredBy called for vehicle_id=" + std::to_string(request->vehicle_id()),

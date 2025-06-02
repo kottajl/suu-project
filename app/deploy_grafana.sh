@@ -14,7 +14,8 @@ helm upgrade --install loki grafana/loki -f loki-values.yaml \
 
 helm upgrade --install prometheus prometheus-community/prometheus \
   --namespace prometheus \
-  --create-namespace
+  --create-namespace \
+  -f prometheus-values.yaml
 
 helm upgrade --install grafana grafana/grafana \
     --namespace grafana \

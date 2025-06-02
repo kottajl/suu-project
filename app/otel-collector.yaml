@@ -22,13 +22,11 @@ spec:
         endpoint: http://tempo.tempo.svc.cluster.local:4317
         tls:
           insecure: true
-      prometheus:
-        endpoint: ${MY_POD_IP}:8889
-        send_timestamps: true
-        metric_expiration: 30m
-        enable_open_metrics: true
-        resource_to_telemetry_conversion:
+        sending_queue:
           enabled: true
+          queue_size: 10000
+      prometheus:
+        endpoint: 0.0.0.0:9464
     service:
       pipelines:
         traces:
@@ -39,6 +37,7 @@ spec:
           receivers: [otlp]
           exporters: [prometheus]
 
-        logs:
-          receivers: [otlp]
-          exporters: [otlphttp/logs]
+        #logs:
+          #receivers: [otlp]
+          #exporters: [otlphttp/logs]
+          #exporters: [debug]
