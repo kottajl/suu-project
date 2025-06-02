@@ -36,7 +36,7 @@ spec:
           exporters: [otlp/traces]
 
         metrics:
-          receivers: [otlp, prometheus]
+          receivers: [otlp]
           exporters: [prometheus]
 
         logs:
