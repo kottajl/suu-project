@@ -91,7 +91,7 @@ Projekt został przygotowany w języku **C++** z wykorzystaniem frameworka **gRP
 
 Instalacja projektu polega na budowie obrazów Dockerowych i ich uruchomieniu. Poniżej przedstawiono kroki wymagane do przygotowania środowiska:
 
-### Krok 1: Budowa obrazu bazowego
+### Krok 1: Budowa środowiska i import niezbędnych bibliotek
 
 ```bash
 cd app
@@ -143,6 +143,10 @@ Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje o
 ### Uruchomienie aplikacji
 
 ### Prezentacja wyników działania
+
+![Tempo traces](https://github.com/user-attachments/assets/8f1d85e1-8e7d-4c73-a096-360da14a790d)
+![Metrics](https://github.com/user-attachments/assets/255fb8b9-2ed1-4803-827b-d2bfe6938627)
+![Loki logs](https://github.com/user-attachments/assets/71f66da1-bd6f-4112-a481-c4490e9bcdb2)
 
 ## Wykorzystanie AI w projekcie
 
