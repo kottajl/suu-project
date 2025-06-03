@@ -224,8 +224,11 @@ kind create cluster
 - Prometheus: ` http://prometheus-server.prometheus.svc.cluster.local:80`
   
 Wyniki prezentowane w formacie trace, metryk i logów w Grafanie:
+Przykłady traców:
 ![Tempo traces](https://github.com/user-attachments/assets/8f1d85e1-8e7d-4c73-a096-360da14a790d)
+Przykłady metryk:
 ![Metrics](https://github.com/user-attachments/assets/255fb8b9-2ed1-4803-827b-d2bfe6938627)
+Przykłady łogów:
 ![Loki logs](https://github.com/user-attachments/assets/71f66da1-bd6f-4112-a481-c4490e9bcdb2)
 
 ## Wykorzystanie AI w projekcie
@@ -260,4 +263,5 @@ Dzięki modularnej strukturze i wykorzystaniu otwartych standardów projekt:
 - [gRPC website](https://www.cncf.io/projects/grpc/)
 - [OpenTelemetry website](https://www.cncf.io/projects/opentelemetry/)
 - [Grafana tools website](https://grafana.com/)
+- [OTel-Loki in Grafana](https://grafana.com/docs/loki/latest/send-data/otel/)
 - [Protobuf website](https://protobuf.dev/)
