@@ -130,20 +130,84 @@ Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje o
 ./deploy_kind.sh
 ```
 
-## Uruchamianie projektu - krok po kroku
+## Uruchamianie projektu – krok po kroku
 
-### Podejście Infrastructure as Code
+1. **Wymagania wstępne**
+   - Zainstalowane narzędzia:
+     - Docker i Kind (Kubernetes in Docker)
+     - `kubectl`
+     - `helm`
+     - `make`
+   - Otwarty dostęp do portów 3000 (Grafana), 9090 (Prometheus)
+
+2. **Budowanie obrazów Dockera**
+   - Zbuduj obraz bazowy oraz obrazy aplikacji.
+
+3. **Uruchomienie klastra i komponentów**
+   - Uruchom lokalny klaster Kind.
+   - Zainstaluj Prometheus i Loki za pomocą Helm Charts.
+   - Zainstaluj Grafanę do wizualizacji metryk i logów.
+   - Uruchom kolektor OpenTelemetry.
+
+4. **Wdrożenie mikroserwisów**
+   - Zastosuj manifesty Kubernetes dla każdego mikroserwisu:
+ ```bash
+./deploy_kind.sh
+./deploy_otel_collector.sh
+```
+
+6. **Weryfikacja wdrożenia**
+   - Użyj `kubectl` do sprawdzenia stanu podów i logów.
+ ```bash
+./kubectl get pods
+./kubectl get pods --namespace loki
+./kubectl get pods --namespace prometheus
+./kubectl get pods --namespace tempo
+```
+   - Zaloguj się do interfejsu Grafana i dodaj źródła danych (Prometheus, Loki).
+```bash
+./deploy_grafana.sh
+
+```
+   - Grafana będzie dostępna w przeglądarce pod adresem `localhost:3000`
+---
+
+## Podejście Infrastructure as Code
+
+Projekt wykorzystuje podejście *Infrastructure as Code (IaC)* poprzez:
+
+- Skrypty automatyzujące budowę i wdrożenie aplikacji (`*.sh`)
+- Pliki manifestów Kubernetes (`*.yaml`) definiujące wszystkie komponenty systemu
+- Wykorzystanie Helm Charts do zarządzania Prometheusem, Lokim i Grafaną
+- Deklaratywne i modułowe zarządzanie usługami w architekturze mikroserwisowej
 
 ## Etapy uruchomienia demonstracyjnego
 
+
+
 ### Konfiguracja środowiska testowego
 
+   - Upewnij się, że wszystkie pody są w stanie `Running`.
+   - Sprawdź, czy usługi komunikują się poprawnie w klastrze.
+   - Zweryfikuj, że Prometheus i Grafana mają dostęp do odpowiednich endpointów.
+     
 ### Przygotowanie danych testowych
+
+   - Można ręcznie zasymulować przesyłki, pojazdy i klientów korzystając z odpowiednich endpointów REST lub komunikacji gRPC.
+   - Dane generowane przez mikroserwisy będą rejestrowane w systemie monitoringu i logowania.
 
 ### Uruchomienie aplikacji
 
-### Prezentacja wyników działania
+   - Aplikacja działa w całości w klastrze Kubernetes.
+   - Każdy mikroserwis wykonuje swoje zadania automatycznie po wdrożeniu i może być testowany za pomocą logów i metryk.
 
+### Prezentacja wyników działania
+Żeby zobaczyć wyniki jest potrzebne dodanie źródeł dannych dla serwisów:
+- Tempo: `http://tempo.tempo.svc.cluster.local:3100`
+- Loki: `http://loki.loki.svc.cluster.local:3100`
+- Prometheus: ` http://prometheus-server.prometheus.svc.cluster.local:80`
+  
+Wyniki prezentowane w formacie trace, metryk i logów w Grafanie:
 ![Tempo traces](https://github.com/user-attachments/assets/8f1d85e1-8e7d-4c73-a096-360da14a790d)
 ![Metrics](https://github.com/user-attachments/assets/255fb8b9-2ed1-4803-827b-d2bfe6938627)
 ![Loki logs](https://github.com/user-attachments/assets/71f66da1-bd6f-4112-a481-c4490e9bcdb2)
