@@ -150,10 +150,19 @@ Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje o
    - Uruchom kolektor OpenTelemetry.
 
 4. **Wdrożenie mikroserwisów**
-   - Zastosuj manifesty Kubernetes dla każdego mikroserwisu:
+   - Zastosuj manifesty Kubernetes dla każdego mikroserwisu przez bash skrypt:
  ```bash
 ./deploy_kind.sh
+```
+   - Stwórz Otel collector, który będzie zbierać dane i eksportować ich do Grafany.
+```bash
 ./deploy_otel_collector.sh
+```
+
+   - (Opcjonalne) Skrypty dla usuwanie deploymentów:
+```bash
+./remove_deployments.sh
+./remove_default_namespace_deployments.sh
 ```
 
 6. **Weryfikacja wdrożenia**
@@ -183,22 +192,29 @@ Projekt wykorzystuje podejście *Infrastructure as Code (IaC)* poprzez:
 
 ## Etapy uruchomienia demonstracyjnego
 
-
+Poniżej jest przedstawiony pełny spis komend bash dla uruchomienia demonstracyjnego dla czystego środowiska
+```bash
+./build_base_docker_image.sh
+./build_docker_images.sh
+kind create cluster
+./deploy_kind.sh
+./deploy_otel_collector.sh
+./deploy_grafana.sh
+```
 
 ### Konfiguracja środowiska testowego
 
    - Upewnij się, że wszystkie pody są w stanie `Running`.
-   - Sprawdź, czy usługi komunikują się poprawnie w klastrze.
    - Zweryfikuj, że Prometheus i Grafana mają dostęp do odpowiednich endpointów.
      
 ### Przygotowanie danych testowych
 
-   - Można ręcznie zasymulować przesyłki, pojazdy i klientów korzystając z odpowiednich endpointów REST lub komunikacji gRPC.
+   - Przesyłki, pojazdy i klienty są generowane automatyczne dla 3 pojazdów i 3 klientów.
    - Dane generowane przez mikroserwisy będą rejestrowane w systemie monitoringu i logowania.
 
 ### Uruchomienie aplikacji
 
-   - Aplikacja działa w całości w klastrze Kubernetes.
+   - Aplikacja działa w całości w klastrze Kind Kubernetes.
    - Każdy mikroserwis wykonuje swoje zadania automatycznie po wdrożeniu i może być testowany za pomocą logów i metryk.
 
 ### Prezentacja wyników działania
@@ -214,7 +230,30 @@ Wyniki prezentowane w formacie trace, metryk i logów w Grafanie:
 
 ## Wykorzystanie AI w projekcie
 
+(IZ) AI został używany w projekcie głównie w dwóch celach - ulepszenie dokumentacji i debugowanie logów.
+```
+Find what is wrong with this log.
+<For example log from vechicle-service with some kind of error>
+```
+
 ## Podsumowanie i wnioski
+
+Projekt gRPC-C++-OTel stanowi kompletny przykład systemu mikroserwisowego, który integruje:
+- konteneryzację (Docker),
+- zarządzanie cyklem życia usług (Kubernetes),
+- obserwowalność (OpenTelemetry, Prometheus, Grafana, Loki),
+- oraz podejście Infrastructure as Code (IaC).
+
+Dzięki modularnej strukturze i wykorzystaniu otwartych standardów projekt:
+- jest łatwy do wdrożenia i rozwijania,
+- umożliwia szybką diagnostykę działania systemu za pomocą metryk i logów,
+- pozwala na integrację z narzędziami AI do analizy danych runtime.
+
+**Wnioski:**
+- Zastosowanie mikroserwisów znacząco ułatwia skalowanie i niezależny rozwój komponentów.
+- Monitoring i logging od początku projektu zwiększa jego niezawodność i skraca czas diagnostyki błędów.
+- Podejście IaC zapewnia powtarzalność wdrożeń i minimalizuje błędy ludzkie.
+- Projekt może stanowić solidną bazę do dalszego rozwoju – np. w kierunku automatycznego skalowania, zaawansowanej analityki czy wykorzystania AI do automatycznej reakcji na problemy systemowe.
 
 ## Odniesienia
 
