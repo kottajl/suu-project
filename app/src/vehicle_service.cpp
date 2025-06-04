@@ -110,7 +110,11 @@ private:
     opentelemetry::nostd::shared_ptr<metrics_api::Meter> meter_;
     opentelemetry::nostd::shared_ptr<logs_api::Logger> logger_;
 
+    opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Counter<double>> send_location_counter;
+    opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Counter<double>> track_vehicle_counter;
     opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Counter<double>> get_packages_delivered_counter;
+    opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Counter<double>> locations_processed_counter;
+    opentelemetry::nostd::shared_ptr<opentelemetry::metrics::Histogram<double>> package_service_latency_histogram;
 
 public:
 	VehicleServiceImpl(std::shared_ptr<grpc::Channel> package_channel)
@@ -120,7 +124,16 @@ public:
         meter_ = metrics_api::Provider::GetMeterProvider()->GetMeter("vehicle_service");
         logger_ = logs_api::Provider::GetLoggerProvider()->GetLogger("vehicle_service");
 
+        send_location_counter = meter_->CreateDoubleCounter("send_location_requests_total");
+        track_vehicle_counter = meter_->CreateDoubleCounter("track_vehicle_requests_total");
         get_packages_delivered_counter = meter_->CreateDoubleCounter("get_packages_delivered_requests_total");
+
+        locations_processed_counter = meter_->CreateDoubleCounter("locations_processed_total");
+        package_service_latency_histogram = meter_->CreateDoubleHistogram(
+            "package_service_latency_ms",
+            "Latency for calls to PackageService",
+            "ms"
+        );
 
     }
 
@@ -131,6 +144,10 @@ public:
         Location loc;
         int32_t vehicle_id = 0;
         int location_count = 0;
+
+        std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(vehicle_id)}};
+        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+        send_location_counter->Add(1.0, labelkv);
 
         while (reader->Read(&loc)) {
             auto span = tracer_->StartSpan("process_location");
@@ -169,13 +186,18 @@ public:
 
             ++location_count;
 
+            std::map<std::string, std::string> locations_labels = {{"vehicle_id", std::to_string(loc.vehicle_id())}};
+            auto labelkv_locations = opentelemetry::common::KeyValueIterableView<decltype(locations_labels)>{locations_labels};
+            locations_processed_counter->Add(1.0, labelkv_locations);
+
             span->AddEvent("Finished processing");
             span->End();
         }
+
         response->set_message("Received " + std::to_string(location_count) + " locations for vehicle " + std::to_string(vehicle_id));
         std::cout << response->message() << std::endl;
         logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, response->message());
-
+        
         return Status::OK;
     }
 
@@ -187,6 +209,10 @@ public:
         span->AddEvent("Starting vehicle tracking");
         span->SetAttribute("vehicle_id", request->vehicle_id());
         auto ctx = span->GetContext();
+
+        std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(request->vehicle_id())}};
+        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+        track_vehicle_counter->Add(1.0, labelkv);
 
         logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "trackVehicle called for vehicle_id=" + std::to_string(request->vehicle_id()),
                                ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
@@ -228,27 +254,27 @@ public:
                               const DeliveryQuery* request,
                               DeliveryCount* response) override {
 
-
         auto span = tracer_->StartSpan("get_packages_delivered_by");
         span->AddEvent("Calling package_service to get packages count");
         span->SetAttribute("vehicle_id", request->vehicle_id());
         auto ctx = span->GetContext();
 
-
-        std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(request->vehicle_id())}};
-        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
-        get_packages_delivered_counter->Add(1.0, labelkv);
-
         std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
         logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "getPackagesDeliveredBy called for vehicle_id=" + std::to_string(request->vehicle_id()),
                                ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
+    
         VehicleQuery query;
 		query.set_vehicle_id(request->vehicle_id());
 
 		grpc::ClientContext client_context;
 		packages::DeliveredCount pkg_response;
 
+        auto start_ext_clock = std::chrono::steady_clock::now();
+
 		grpc::Status status = package_stub_->getDeliveredCountByVehicle(&client_context, query, &pkg_response);
+        
+        auto end_ext_clock = std::chrono::steady_clock::now();
+        std::chrono::duration<double> ext_elapsed_time = end_ext_clock - start_ext_clock;
 
 		if (!status.ok()) {
             std::cerr << "Failed to query PackageService: " << status.error_message() << std::endl;
@@ -259,6 +285,12 @@ public:
 			return grpc::Status(grpc::StatusCode::UNAVAILABLE, "PackageService not responding");
         }
         span->AddEvent("package_service called succesfully");
+
+        std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(request->vehicle_id())}};
+        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+        get_packages_delivered_counter->Add(1.0, labelkv);
+
+        package_service_latency_histogram->Record(ext_elapsed_time.count(), opentelemetry::context::Context{});
 
         response->set_count(pkg_response.count());
         span->SetAttribute("package_count", pkg_response.count());
