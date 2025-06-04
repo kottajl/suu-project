@@ -5,6 +5,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <thread>
+#include <chrono>
+#include <cstdlib>
 
 #include <opentelemetry/exporters/otlp/otlp_grpc_exporter.h>
 #include <opentelemetry/sdk/trace/simple_processor.h>
@@ -228,6 +230,8 @@ public:
         while (stream->Read(&update)) {
             {
                 std::lock_guard<std::mutex> lock(mutex_);
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(80 + rand() % 120));
                 // Handle delivery status
                 if (update.package_id() != -1 && update.status() == PackageStatus::DELIVERED) {
                     for (auto& pkg : packages_) {
@@ -249,6 +253,9 @@ public:
                     }
                 }
             }
+
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(60 + rand() % 100));
 
             // 🔁 Wait until at least one CREATED package is available
             std::unique_lock<std::mutex> lock(mutex_);
@@ -277,6 +284,9 @@ public:
                 << update.vehicle_id() << std::endl;
 
                 span->AddEvent("Assigned package " + std::to_string(selected->package_id) + " to vehicle " + std::to_string(update.vehicle_id()));
+
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(70 + rand() % 100));
 
                 stream->Write(instr);
             } else {

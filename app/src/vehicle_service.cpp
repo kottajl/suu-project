@@ -6,6 +6,8 @@
 #include <thread>
 #include <condition_variable>
 #include <unordered_map>
+#include <chrono>
+#include <cstdlib>
 
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
@@ -150,6 +152,8 @@ public:
         send_location_counter->Add(1.0, labelkv);
 
         while (reader->Read(&loc)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50 + rand() % 151));
+
             auto span = tracer_->StartSpan("process_location");
             span->AddEvent("Starting processing received location");
             span->SetAttribute("vehicle_id", loc.vehicle_id());
@@ -232,6 +236,8 @@ public:
             loc.set_latitude(lat_dist(rng));
             loc.set_longitude(lon_dist(rng));
 
+            std::this_thread::sleep_for(std::chrono::milliseconds(80 + rand() % 171));
+
             writer->Write(loc);
 
             span->AddEvent("Sending location " + std::to_string(loc.latitude()) + ", " + std::to_string(loc.longitude()));
@@ -258,6 +264,8 @@ public:
         span->AddEvent("Calling package_service to get packages count");
         span->SetAttribute("vehicle_id", request->vehicle_id());
         auto ctx = span->GetContext();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100 + rand() % 201));
 
         std::cout << "[VEHICLE_SERVICE] getPackagesDeliveredBy called for vehicle_id=" << request->vehicle_id() << std::endl;
         logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "getPackagesDeliveredBy called for vehicle_id=" + std::to_string(request->vehicle_id()),

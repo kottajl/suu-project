@@ -252,17 +252,29 @@ kind create cluster
 
 Poniżej zaprezentowano wyniki pozyskane przy użyciu Grafany w postaci metryk, logów i śladów:
 
-Przykłady trace'ów:
+#### Przykłady śladów:
 
-![Tempo traces](https://github.com/user-attachments/assets/8f1d85e1-8e7d-4c73-a096-360da14a790d)
+![a](./images/traces/package_service.png)
 
-Przykłady metryk:
+![a](./images/traces/vehicle_service.png)
 
-![Metrics](https://github.com/user-attachments/assets/255fb8b9-2ed1-4803-827b-d2bfe6938627)
+#### Przykłady metryk:
 
-Przykłady logów:
+![a](./images/metrics/1.png)
 
-![Loki logs](https://github.com/user-attachments/assets/71f66da1-bd6f-4112-a481-c4490e9bcdb2)
+![a](./images/metrics/2.png)
+
+![a](./images/metrics/3.png)
+
+![a](./images/metrics/4.png)
+
+![a](./images/metrics/5.png)
+
+#### Przykłady logów:
+
+![a](./images/logs/package_service.png)
+
+![a](./images/logs/vehicle_service.png)
 
 ## Wykorzystanie AI w projekcie
 
