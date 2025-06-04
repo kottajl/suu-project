@@ -125,6 +125,11 @@ private:
     opentelemetry::nostd::shared_ptr<logs_api::Logger> logger_;
     opentelemetry::nostd::shared_ptr<metrics_api::Meter> meter_;
     opentelemetry::nostd::shared_ptr<metrics_api::Counter<uint64_t>> created_packages_counter_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Counter<uint64_t>> get_package_status_counter_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Counter<uint64_t>> update_packages_requests_counter_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Counter<double>> delivered_packages_counter_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Histogram<double>> create_package_duration_histogram_;
+    opentelemetry::nostd::shared_ptr<metrics_api::Counter<uint64_t>> not_found_package_status_counter_;
 
 public:
     PackageServiceImpl() {
@@ -132,19 +137,21 @@ public:
         logger_ = logs_api::Provider::GetLoggerProvider()->GetLogger("package-service");
         meter_ = metrics_api::Provider::GetMeterProvider()->GetMeter("package-service");
         created_packages_counter_ = meter_->CreateUInt64Counter("created_packages_total");
+        get_package_status_counter_ = meter_->CreateUInt64Counter("get_package_status_requests_total");
+        update_packages_requests_counter_ = meter_->CreateUInt64Counter("update_packages_requests_total");
+        delivered_packages_counter_ = meter_->CreateDoubleCounter("delivered_packages_total");
+        create_package_duration_histogram_ = meter_->CreateDoubleHistogram("create_package_duration_seconds");
+        not_found_package_status_counter_ = meter_->CreateUInt64Counter("not_found_package_status_total");
     }
     Status createPackage(ServerContext* context,
                      const PackageData* request,
                      PackageResponse* response) override {
 
+    auto start = std::chrono::steady_clock::now();
     auto span = tracer_->StartSpan("create_package");
     span->SetAttribute("sender", request->sender_address());
     span->SetAttribute("recipient", request->recipient_address());
     auto ctx = span->GetContext();
-
-    logger_->EmitLogRecord(opentelemetry::logs::Severity::kInfo, "createPackage called",
-                           ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),
-                           opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -162,10 +169,22 @@ public:
 
     created_packages_counter_->Add(1);
 
+    logger_->EmitLogRecord(
+        logs_api::Severity::kInfo,
+        "New package created: sender=" + pkg.sender_address + ", recipient=" + pkg.recipient_address,
+        ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),
+        opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now())
+    );
+
     span->AddEvent("Package created with ID " + std::to_string(pkg.package_id));
+    span->AddEvent("Sender address: " + pkg.sender_address);
+    span->AddEvent("Recipient address: " + pkg.recipient_address);
     span->End();
 
     package_available_cv_.notify_one();
+    auto end = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    create_package_duration_histogram_->Record(elapsed.count(), opentelemetry::context::Context{});
 
     return Status::OK;
 }
@@ -174,6 +193,7 @@ public:
     Status getPackageStatus(ServerContext* context,
                             const PackageStatusRequest* request,
                             PackageStatusResponse* response) override {
+        get_package_status_counter_->Add(1);
         std::lock_guard<std::mutex> lock(mutex_);
         for (const auto& pkg : packages_) {
             if (pkg.package_id == request->package_id()) {
@@ -181,12 +201,24 @@ public:
                 return Status::OK;
             }
         }
+        not_found_package_status_counter_->Add(1);
+
+        auto span = tracer_->StartSpan("get_package_status_not_found");
+        auto ctx = span->GetContext();
+        logger_->EmitLogRecord(
+            logs_api::Severity::kWarn,
+            "Package not found: id=" + std::to_string(request->package_id()),
+            ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),
+            opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now())
+        );
+        span->End();
 
         return Status(grpc::NOT_FOUND, "Package not found");
     }
 
     Status updatePackages(ServerContext* context,
     ServerReaderWriter<PackageInstruction, PackageUpdate>* stream) override {
+        update_packages_requests_counter_->Add(1);
         PackageUpdate update;
         auto span = tracer_->StartSpan("update_packages");
         auto ctx = span->GetContext();
@@ -202,8 +234,16 @@ public:
                         if (pkg.package_id == update.package_id()) {
                             pkg.status = PackageStatus::DELIVERED;
                             pkg.delivered_by = update.vehicle_id();
+
+                            std::map<std::string, std::string> labels = {{"vehicle_id", std::to_string(update.vehicle_id())}};
+                            auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+                            delivered_packages_counter_->Add(1.0, labelkv);
+
                             std::cout << "[SERVER] Package " << pkg.package_id << " delivered by vehicle "
                             << update.vehicle_id() << std::endl;
+
+                            span->AddEvent("Package " + std::to_string(pkg.package_id) + " delivered by vehicle " + std::to_string(update.vehicle_id()));
+
                             break;
                         }
                     }
@@ -236,7 +276,16 @@ public:
                 std::cout << "[SERVER] Assigned package " << selected->package_id << " to vehicle "
                 << update.vehicle_id() << std::endl;
 
+                span->AddEvent("Assigned package " + std::to_string(selected->package_id) + " to vehicle " + std::to_string(update.vehicle_id()));
+
                 stream->Write(instr);
+            } else {
+                logger_->EmitLogRecord(
+                    logs_api::Severity::kInfo,
+                    "No packages available for assignment to vehicle " + std::to_string(update.vehicle_id()),
+                    ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),
+                    opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now())
+                );
             }
         }
         span->End();
