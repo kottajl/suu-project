@@ -75,9 +75,13 @@ Dzięki OpenTelemetry, komponenty gromadzą dane, które są następnie przesył
 Projekt został przygotowany w języku **C++** z wykorzystaniem frameworka **gRPC** oraz instrumentacji **OpenTelemetry**. Do jego uruchomienia wymagane są:
 
 - **Docker** w wersji 20.10 lub nowszej,
-- **g++** i **make** (opcjonalnie – tylko w przypadku lokalnej kompilacji poza Dockerem),
-- Narzędzia do wizualizacji danych telemetrycznych, np. **Grafana** z **Tempo** i **Prometheus** (opcjonalnie).
-- **kind** do lokalnego uruchomienia aplikacji na klastrze Kubernetes
+- **kind** do lokalnego uruchomienia aplikacji na klastrze Kubernetes,
+- **kubectl** do zarządzania klastrem Kubernetes z linii komend,
+- **helm** do automatyzacji wdrożenia usług takich jak Grafana, Tempo, Loki oraz Prometheus
+
+oraz opcjonalnie w przypadku lokalnej kompilacji poza Dockerem
+
+- **g++** i **make**.
 
 ### Struktura środowiska:
 
@@ -97,7 +101,9 @@ Instalacja projektu polega na budowie obrazów Dockerowych i ich uruchomieniu. P
 cd app
 ./build_base_docker_image.sh
 ```
+
 ### Krok 2: Budowa wszystkich obrazów komponentów
+
 ```bash
 ./build_docker_images.sh
 ```
@@ -109,77 +115,101 @@ Ten skrypt tworzy obrazy dla:
 - `manager-client`
 - `customer-client`
 
-### Krok 3: (Opcjonalnie) Budowa pojedynczego obrazu
-Można zbudować pojedynczą usługę ręcznie:
+#### (Alternatywnie) 
+
+Można zbudować pojedynczą usługę ręcznie poprzez budowę pojedynczego obrazu:
+
 ```bash
 docker build -f Dockerfile.vehicle-service -t suu/vehicle-service .
 ```
 
-### Krok 4: Uruchomienie usług
-Można uruchomić kontenery ręcznie lub wykorzystać pliki `.yaml` i środowisko Kubernetes (np. `kind`, `minikube` lub chmurę).
+### Krok 3: Uruchomienie usług
 
-Przykład użycia `kubectl`:
-```bash
-kubectl apply -f vehicle-service.yaml
-```
-Lub uruchomienie w trybie developerskim przy użyciu `docker run`.
-
-Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje obrazy Dockerowe do klastra `kind`.
+Użycie programu `kind` do uruchomienia poprzez gotowy skrypt `deploy_kind.sh`
 
 ```bash
 ./deploy_kind.sh
 ```
+
+#### (Alternatywnie)
+
+Można uruchomić kontenery ręcznie lub wykorzystać pliki `.yaml` i środowisko Kubernetes (np. `kind`, `minikube` lub chmurę).
+
+Przykład użycia `kubectl`:
+
+```bash
+kubectl apply -f vehicle-service.yaml
+```
+
+Lub uruchomić w trybie developerskim przy użyciu `docker run`.
+
 
 ## Uruchamianie projektu – krok po kroku
 
 1. **Wymagania wstępne**
+
    - Zainstalowane narzędzia:
-     - Docker i Kind (Kubernetes in Docker)
+     - `Docker`
+     - `kind` 
      - `kubectl`
      - `helm`
-     - `make`
    - Otwarty dostęp do portów 3000 (Grafana), 9090 (Prometheus)
 
-2. **Budowanie obrazów Dockera**
-   - Zbuduj obraz bazowy oraz obrazy aplikacji.
+2. **Budowanie obrazów Dockera, bazowego oraz aplikacji**
+
+```bash
+cd app
+./build_base_docker_image.sh
+./build_docker_images.sh
+```
 
 3. **Uruchomienie klastra i komponentów**
-   - Uruchom lokalny klaster Kind.
-   - Zainstaluj Prometheus i Loki za pomocą Helm Charts.
-   - Zainstaluj Grafanę do wizualizacji metryk i logów.
-   - Uruchom kolektor OpenTelemetry.
 
-4. **Wdrożenie mikroserwisów**
-   - Zastosuj manifesty Kubernetes dla każdego mikroserwisu przez bash skrypt:
- ```bash
+```bash
+kind create cluster
 ./deploy_kind.sh
 ```
-   - Stwórz Otel collector, który będzie zbierać dane i eksportować ich do Grafany.
+
+4. **Uruchomienie OTEL collectora oraz Grafany**
+
 ```bash
 ./deploy_otel_collector.sh
+./deploy_grafana.sh
 ```
 
-   - (Opcjonalne) Skrypty dla usuwanie deploymentów:
+- (Opcjonalne) Skrypty dla usuwanie deploymentów:
+
 ```bash
 ./remove_deployments.sh
 ./remove_default_namespace_deployments.sh
 ```
 
-6. **Weryfikacja wdrożenia**
-   - Użyj `kubectl` do sprawdzenia stanu podów i logów.
+5. **Weryfikacja wdrożenia poprzez użycie `kubectl` do sprawdzenia stanu podów**
+
+- wszystkie przestrzenie nazw na raz
+
+```bash
+kubectl get pods --all-namespace
+```
+
+- lub każda osobno
  ```bash
 kubectl get pods
 kubectl get pods --namespace loki
 kubectl get pods --namespace prometheus
 kubectl get pods --namespace tempo
+kubectl get pods --namespace grafana
 ```
-   - Zaloguj się do interfejsu Grafana i dodaj źródła danych (Prometheus, Loki).
-```bash
-./deploy_grafana.sh
 
-```
-   - Grafana będzie dostępna w przeglądarce pod adresem `localhost:3000`
----
+6. **Logowanie do Grafany**
+
+- Zaloguj się do interfejsu Grafany pod adresem `localhost:3000` (domyślny login i hasło to `admin`). 
+- Dodaj źródła danych
+   - Tempo: `http://tempo.tempo.svc.cluster.local:3100`,
+   - Loki: `http://loki.loki.svc.cluster.local:3100`,
+   - Prometheus: ` http://prometheus-server.prometheus.svc.cluster.local:80`.
+- Dostępne metryki, logi oraz ślady powinny być widoczne w odpowiednich miejscach.
+
 
 ## Podejście Infrastructure as Code
 
@@ -192,7 +222,7 @@ Projekt wykorzystuje podejście *Infrastructure as Code (IaC)* poprzez:
 
 ## Etapy uruchomienia demonstracyjnego
 
-Poniżej jest przedstawiony pełny spis komend bash dla uruchomienia demonstracyjnego dla czystego środowiska
+Poniżej przedstawiony jest pełny spis komend bash dla uruchomienia demonstracyjnego dla czystego środowiska
 ```bash
 ./build_base_docker_image.sh
 ./build_docker_images.sh
@@ -204,31 +234,33 @@ kind create cluster
 
 ### Konfiguracja środowiska testowego
 
-   - Upewnij się, że wszystkie pody są w stanie `Running`.
-   - Zweryfikuj, że Prometheus i Grafana mają dostęp do odpowiednich endpointów.
+- Upewnij się, że wszystkie pody są w stanie `Running`.
+- Zweryfikuj, czy Prometheus i Grafana mają dostęp do odpowiednich endpointów.
      
 ### Przygotowanie danych testowych
 
-   - Przesyłki, pojazdy i klienty są generowane automatyczne dla 3 pojazdów i 3 klientów.
-   - Dane generowane przez mikroserwisy będą rejestrowane w systemie monitoringu i logowania.
+- Przesyłki są generowane automatyczne dla 3 pojazdów i 3 klientów.
+- Dane generowane przez mikroserwisy będą rejestrowane w systemie monitoringu i logowania.
 
 ### Uruchomienie aplikacji
 
-   - Aplikacja działa w całości w klastrze Kind Kubernetes.
-   - Każdy mikroserwis wykonuje swoje zadania automatycznie po wdrożeniu i może być testowany za pomocą logów i metryk.
+- Aplikacja działa w całości w klastrze Kind Kubernetes.
+- Każdy mikroserwis wykonuje swoje zadania automatycznie po wdrożeniu i może być testowany za pomocą logów i metryk.
 
 ### Prezentacja wyników działania
-Żeby zobaczyć wyniki jest potrzebne dodanie źródeł dannych dla serwisów:
-- Tempo: `http://tempo.tempo.svc.cluster.local:3100`
-- Loki: `http://loki.loki.svc.cluster.local:3100`
-- Prometheus: ` http://prometheus-server.prometheus.svc.cluster.local:80`
-  
-Wyniki prezentowane w formacie trace, metryk i logów w Grafanie:
-Przykłady traców:
+
+Poniżej zaprezentowano wyniki pozyskane przy użyciu Grafany w postaci metryk, logów i śladów:
+
+Przykłady trace'ów:
+
 ![Tempo traces](https://github.com/user-attachments/assets/8f1d85e1-8e7d-4c73-a096-360da14a790d)
+
 Przykłady metryk:
+
 ![Metrics](https://github.com/user-attachments/assets/255fb8b9-2ed1-4803-827b-d2bfe6938627)
-Przykłady łogów:
+
+Przykłady logów:
+
 ![Loki logs](https://github.com/user-attachments/assets/71f66da1-bd6f-4112-a481-c4490e9bcdb2)
 
 ## Wykorzystanie AI w projekcie
@@ -241,27 +273,26 @@ Find what is wrong with this log.
 
 ## Podsumowanie i wnioski
 
-Projekt gRPC-C++-OTel stanowi kompletny przykład systemu mikroserwisowego, który integruje:
-- konteneryzację (Docker),
-- zarządzanie cyklem życia usług (Kubernetes),
-- obserwowalność (OpenTelemetry, Prometheus, Grafana, Loki),
-- oraz podejście Infrastructure as Code (IaC).
+Niniejszy projekt stanowi kompletny przykład systemu mikroserwisowego, który integruje:
+- konteneryzację przy użyciu Dockera,
+- zarządzanie cyklem życia usług poprzez Kubernetesa,
+- obserwowalność (OpenTelemetry, Prometheus, Grafana, Loki, Tempo),
+- oraz podejście Infrastructure as Code.
 
-Dzięki modularnej strukturze i wykorzystaniu otwartych standardów projekt:
+Dzięki modularnej strukturze i wykorzystaniu otwartych standardów projekt między innymi:
 - jest łatwy do wdrożenia i rozwijania,
-- umożliwia szybką diagnostykę działania systemu za pomocą metryk i logów,
-- pozwala na integrację z narzędziami AI do analizy danych runtime.
+- umożliwia szybką diagnostykę działania systemu za pomocą metryk, logów i śladów.
 
 **Wnioski:**
 - Zastosowanie mikroserwisów znacząco ułatwia skalowanie i niezależny rozwój komponentów.
-- Monitoring i logging od początku projektu zwiększa jego niezawodność i skraca czas diagnostyki błędów.
+- Monitoring i logowanie zdarzeń zwiększa niezawodność systemu i skraca czas diagnostyki błędów.
 - Podejście IaC zapewnia powtarzalność wdrożeń i minimalizuje błędy ludzkie.
-- Projekt może stanowić solidną bazę do dalszego rozwoju – np. w kierunku automatycznego skalowania, zaawansowanej analityki czy wykorzystania AI do automatycznej reakcji na problemy systemowe.
+- Projekt może stanowić solidną bazę do dalszego rozwoju – np. w kierunku automatycznego skalowania czy zaawansowanej analityki.
 
 ## Odniesienia
 
 - [gRPC website](https://www.cncf.io/projects/grpc/)
 - [OpenTelemetry website](https://www.cncf.io/projects/opentelemetry/)
 - [Grafana tools website](https://grafana.com/)
-- [OTel-Loki in Grafana](https://grafana.com/docs/loki/latest/send-data/otel/)
+- [OTel and Loki in Grafana](https://grafana.com/docs/loki/latest/send-data/otel/)
 - [Protobuf website](https://protobuf.dev/)
