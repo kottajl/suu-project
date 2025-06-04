@@ -168,10 +168,10 @@ Stworzyliśmy również skrypt `deploy_kind.sh` który automatycznie deployuje o
 6. **Weryfikacja wdrożenia**
    - Użyj `kubectl` do sprawdzenia stanu podów i logów.
  ```bash
-./kubectl get pods
-./kubectl get pods --namespace loki
-./kubectl get pods --namespace prometheus
-./kubectl get pods --namespace tempo
+kubectl get pods
+kubectl get pods --namespace loki
+kubectl get pods --namespace prometheus
+kubectl get pods --namespace tempo
 ```
    - Zaloguj się do interfejsu Grafana i dodaj źródła danych (Prometheus, Loki).
 ```bash
