@@ -189,7 +189,7 @@ kind create cluster
 - wszystkie przestrzenie nazw na raz
 
 ```bash
-kubectl get pods --all-namespace
+kubectl get pods --all-namespaces
 ```
 
 - lub każda osobno
@@ -241,6 +241,7 @@ kind create cluster
 
 - Przesyłki są generowane automatyczne dla 3 pojazdów i 3 klientów.
 - Dane generowane przez mikroserwisy będą rejestrowane w systemie monitoringu i logowania.
+- W serwisach zbierających dane telemetryczne wprowadzone są nieduże losowe opóźnienia.
 
 ### Uruchomienie aplikacji
 
