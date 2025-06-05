@@ -177,7 +177,7 @@ kind create cluster
 ./deploy_grafana.sh
 ```
 
-- (Opcjonalne) Skrypty dla usuwanie deploymentów:
+- (Opcjonalne) Skrypty do usunięcia deploymentów:
 
 ```bash
 ./remove_deployments.sh
@@ -222,7 +222,7 @@ Projekt wykorzystuje podejście *Infrastructure as Code (IaC)* poprzez:
 
 ## Etapy uruchomienia demonstracyjnego
 
-Poniżej przedstawiony jest pełny spis komend bash dla uruchomienia demonstracyjnego dla czystego środowiska
+Poniżej przedstawiony jest pełny spis komend bash do uruchomienia demonstracyjnego dla czystego środowiska
 ```bash
 ./build_base_docker_image.sh
 ./build_docker_images.sh
@@ -254,27 +254,66 @@ Poniżej zaprezentowano wyniki pozyskane przy użyciu Grafany w postaci metryk, 
 
 #### Przykłady śladów:
 
+- dla ***package-service***:
 ![a](./images/traces/package_service.png)
 
+- dla ***vehicle-service***:
 ![a](./images/traces/vehicle_service.png)
+
+Po kliknięciu w ID wybranego śladu można podglądnąć informacje dotyczące cyklu życia wybranego żądania. Przykładowo, dla procedury **trackVehicle** z serwisu ***vehicle-service*** możemy podglądnąć informację m.in. o ID pojazdu oraz przesyłane koordynaty tego pojazdu:
+
+![a](./images/traces/example_track_vehicle.png)
 
 #### Przykłady metryk:
 
-![a](./images/metrics/1.png)
+- metryka ***create_package_duration_seconds_sum*** - pozwala śledzić sumę czasów wszystkich zarejestrowanych wywołań procedury **createPackage**:
 
-![a](./images/metrics/2.png)
+   ![a](./images/metrics/1.png)
 
-![a](./images/metrics/3.png)
+   Za pomocą prostych zapytań, możemy w szybki sposób wyświetlić np. histogram średniego czasu wykonania owej procedury:
 
-![a](./images/metrics/4.png)
+   ![a](./images/metrics/1_query.png)
 
-![a](./images/metrics/5.png)
+- metryka ***package_service_latency_ms_milliseconds_sum*** - pozwala śledzić sumę czasów odpowiedzi wywołań procedury **getDeliveredCountByVehicle** z ***package-service*** w procedurze **getPackagesDeliveredBy** z ***vehicle-service*** (tudzież opóźnienie zewnętrznego wywołania gRPC):
+
+   ![a](./images/metrics/2.png)
+
+   Tutaj w analogiczny sposób jak ostatnio możemy wyświetlić pomocnicze wykresy:
+
+   ![a](./images/metrics/2_query.png)
+
+- metryka **delivered_packages_total** - pozwala śledzić całkowitą liczbę dostarczonych paczek dla wybranych pojazdów:
+
+   ![a](./images/metrics/3.png)
+
+   Możemy sobie na przykład wybrać konkretny pojazd oraz wyliczyć przyrost wartości w ustalonym oknie czasowym, np. 10 minut:
+
+   ![a](./images/metrics/3_query.png)
+
+   Na podstawie takiej metryki można na przykład ustawić alerty, badające czy czasami serwis nie przestał działać.
+
+- metryka **locations_processed_total** - liczy całkowitą liczbę lokalizacji przetworzonych w wywołaniach procedury **sendLocation** z ***vehicle-service***:
+   ![a](./images/metrics/4.png)
+
+
+- metryka **update_packages_requests_total** - pokazuje ile sumarycznie razy rozpoczęta została aktualizacja paczek (tudzież ile razy została wywołana procedura **updatePackages** z ***package-service***):
+
+   ![a](./images/metrics/5.png)
 
 #### Przykłady logów:
 
-![a](./images/logs/package_service.png)
+- logi z ***package-service***
 
-![a](./images/logs/vehicle_service.png)
+   ![a](./images/logs/package_service.png)
+
+- logi z ***vehicle-service***
+
+   ![a](./images/logs/vehicle_service.png)
+
+Po kliknięciu w wybrany log można zobaczyć informacje dotyczące pól zawartych w tym logu:
+
+![a](./images/logs/example_log_fields.png)
+
 
 ## Wykorzystanie AI w projekcie
 
