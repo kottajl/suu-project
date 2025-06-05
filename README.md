@@ -22,7 +22,7 @@ OpenTelemetry to standard i zestaw narzędzi typu open source, służący do zbi
 
 OTLP (OpenTelemetry Protocol) to standaryzowany protokół komunikacyjny używany przez OpenTelemetry do przesyłania danych telemetrycznych między aplikacjami do obserwowalności (takimi jak Grafana, Jaeger, Prometheus). Jest on binarnym protokołem opartym na gRPC lub [HTTP/Protobuf](https://protobuf.dev/).
 
-W ramach projektu, wykorzystujemy technologię gRPC do komunikacji, OpenTelemetry do zbierania danych telemetrycznych. Protokół OTLP jest używany do eksportowania zebranych danych telemetrycznych do narzędzia Grafana, służącego do wizualizacji wyników. Projekt zostanie skonteneryzowany za pomocą Kubernetes oraz zdeployowany na AWS.
+W ramach projektu, wykorzystujemy technologię gRPC do komunikacji, OpenTelemetry do zbierania danych telemetrycznych. Protokół OTLP jest używany do eksportowania zebranych danych telemetrycznych do narzędzia Grafana, służącego do wizualizacji wyników. Projekt jest skonteneryzowany za pomocą Kubernetes oraz zdeployowany na kind.
 
 ## Opis koncepcji
 
@@ -68,7 +68,9 @@ Może śledzić lokalizację wybranego pojazdu oraz w celu monitorowania wydajno
 Tworzą i śledzą przesyłki.
 
 ### **Dane telemetryczne**
-Dzięki OpenTelemetry, komponenty gromadzą dane, które są następnie przesyłane przez OTLP w celu eksportu do narzędzia Grafana, która umożliwia wizualizację i monitorowanie aplikacji w czasie rzeczywistym. 
+Dzięki OpenTelemetry, serwisy gromadzą dane, które są następnie przesyłane do OpenTelemetry Collectora. Następnie metryki są odczytywane przez Prometheusa, logi są eksportowane do Loki, a tracy do Tempo. Następnie można dodać je jako DataSource do Grafany, która umożliwia wizualizację i monitorowanie aplikacji w czasie rzeczywistym. 
+
+![Diagram telemetrii](./images/otel_diagram.png)
 
 ## Opis konfiguracji środowiska
 
