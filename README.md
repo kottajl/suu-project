@@ -211,7 +211,11 @@ kubectl get pods --namespace loki
 kubectl get pods --namespace prometheus
 kubectl get pods --namespace tempo
 kubectl get pods --namespace grafana
+kubectl get pods --all-namespaces
 ```
+
+Poprawny deploy powinien wyglądać tak:
+![Poprawny deploy](./images/all_deploys.png)
 
 6. **Logowanie do Grafany**
 
