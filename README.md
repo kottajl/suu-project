@@ -340,6 +340,7 @@ Find what is wrong with this log.
 Powiedz mi w czym problem i jak to naprawić.
 <błąd>
 ```
+Czasem niestety AI się myliło, i próbowało używać klas które nie istniały, np. DoubleCounter zamiast Counter<double>.
 
 (PC) AI częściowo pomogło mi w pisaniu plików YAML do deploymentów. Pytałem między innymi o to jak zintegrować Prometheusa z Grafaną, konfiguracja wygenerowana przez AI nie była jednak poprawna.
 ```
