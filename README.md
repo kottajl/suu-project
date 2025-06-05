@@ -361,7 +361,9 @@ serverFiles:
               - simplest-collector.default.svc.cluster.local:9464
 ```
 
-Ogólnie sztuczna inteligencja pomogła nam w szybszej realizacji projektu, ale często myliła się w szczegółach, co skutkowało stratą czasu. W internecie mało jest przykładów integracji C++ z gRPC oraz OpenTelemetry, przez co AI nie było dobrze wytrenowane do tych zadań.
+#### Podsumowanie
+
+W ogólności w tym projekcie sztuczna inteligencja pomogła nam w szybszej realizacji projektu, ale często myliła się w szczegółach, co skutkowało stratą czasu dla pewnych elementów. W internecie mało jest przykładów integracji C++ z gRPC oraz OpenTelemetry, przez co AI nie było dobrze wytrenowane do tych zadań.
 
 ## Podsumowanie i wnioski
 
