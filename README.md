@@ -10,7 +10,7 @@
 
 ## Wprowadzenie
 
-W ramach projektu, budujemy prostą aplikację typu klient-serwer opartą o [gRPC](https://www.cncf.io/projects/grpc/) z włączoną instrumentacją danych telemetrycznych (śladów, metryk, logów prowadzonej komunikacji) przy wykorzystaniu [OpenTelemetry](https://www.cncf.io/projects/opentelemetry/). Dzięki wykorzystaniu OTLP (czyli protokołu OpenTelemetry), zebrane dane będą mogły być eksportowane do narzędzi wizualizacyjnych takich jak [Grafana](https://grafana.com/).
+W ramach projektu zbudowaliśmy aplikację mikroserwisową opartą o [gRPC](https://www.cncf.io/projects/grpc/) z włączoną instrumentacją danych telemetrycznych (śladów, metryk, logów prowadzonej komunikacji) przy wykorzystaniu [OpenTelemetry](https://www.cncf.io/projects/opentelemetry/). Dzięki wykorzystaniu OTLP (czyli protokołu OpenTelemetry), zebrane dane będą mogły być eksportowane do narzędzi wizualizacyjnych takich jak [Grafana](https://grafana.com/).
 
 Celem projektu jest stworzenie aplikacji, która nie tylko umożliwia komunikację pomiędzy klientem a serwerem za pomocą gRPC, ale również zapewnia pełną obserwowalność działania systemu, czyli zdolność do zrozumienia, co dzieje się wewnątrz niego, na podstawie zewnętrznych sygnałów (danych telemetrycznych). Dzięki integracji z OpenTelemetry, aplikacja będzie monitorowana pod kątem wydajności oraz dostępności, co pozwoli na szybsze wykrywanie ewentualnych problemów.
 
@@ -24,9 +24,19 @@ OTLP (OpenTelemetry Protocol) to standaryzowany protokół komunikacyjny używan
 
 W ramach projektu, wykorzystujemy technologię gRPC do komunikacji, OpenTelemetry do zbierania danych telemetrycznych. Protokół OTLP jest używany do eksportowania zebranych danych telemetrycznych do narzędzia Grafana, służącego do wizualizacji wyników. Projekt jest skonteneryzowany za pomocą Kubernetes oraz zdeployowany na kind.
 
+Dane telemetryczne są agregowane i przetwarzane przez komponent OpenTelemetry Collector, który umożliwia integrację z różnymi backendami oraz konwersję i filtrowanie danych.
+
+Do zbierania i przeglądania logów wykorzystujemy Loki, lekki system do agregacji logów stworzony przez Grafana Labs.
+
+Metryki aplikacyjne są zbierane przez Prometheus, który następnie eksportuje je do Grafany w celu ich wizualizacji.
+
+Ślady rozproszone są przechowywane i analizowane za pomocą Tempo, systemu śledzenia opartego na OpenTelemetry.
+
+Do prezentacji metryk, logów i śladów wykorzystujemy Grafana, elastyczne narzędzie do tworzenia interaktywnych dashboardów i analiz danych telemetrycznych w czasie rzeczywistym.
+
 ## Opis koncepcji
 
-W ramach projektu stworzymy system zarządzania flotą pojazdów i przesyłkami w architekturze rozproszonej. Kluczową rolę odgrywa w nim komunikacja między niezależnymi usługami oraz monitorowanie stanu systemu i jego komponentów w czasie rzeczywistym.
+W ramach projektu stworzyliśmy system zarządzania flotą pojazdów i przesyłkami w architekturze rozproszonej.
 
 ## Architektura rozwiązania
 
