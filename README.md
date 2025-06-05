@@ -207,7 +207,7 @@ kubectl get pods --namespace grafana
 - Dodaj źródła danych
    - Tempo: `http://tempo.tempo.svc.cluster.local:3100`,
    - Loki: `http://loki.loki.svc.cluster.local:3100`,
-   - Prometheus: ` http://prometheus-server.prometheus.svc.cluster.local:80`.
+   - Prometheus: `http://prometheus-server.prometheus.svc.cluster.local:80`.
 - Dostępne metryki, logi oraz ślady powinny być widoczne w odpowiednich miejscach.
 
 
