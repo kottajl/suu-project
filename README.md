@@ -323,6 +323,12 @@ Find what is wrong with this log.
 <For example log from vechicle-service with some kind of error>
 ```
 
+(MP) Wykorzystałem AI głównie do naprawiania błędów w kodzie.
+```
+Powiedz mi w czym problem i jak to naprawić.
+<błąd>
+```
+
 ## Podsumowanie i wnioski
 
 Niniejszy projekt stanowi kompletny przykład systemu mikroserwisowego, który integruje:
