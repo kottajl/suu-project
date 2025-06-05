@@ -70,7 +70,7 @@ Tworzą i śledzą przesyłki.
 ### **Dane telemetryczne**
 Dzięki OpenTelemetry, serwisy gromadzą dane, które są następnie przesyłane do OpenTelemetry Collectora. Następnie metryki są odczytywane przez Prometheusa, logi są eksportowane do Loki, a tracy do Tempo. Następnie można dodać je jako DataSource do Grafany, która umożliwia wizualizację i monitorowanie aplikacji w czasie rzeczywistym. 
 
-![Diagram telemetrii](./images/otel_diagram.png)
+![Diagram telemetrii](./images/telemetry_diagram.png)
 
 ## Opis konfiguracji środowiska
 
