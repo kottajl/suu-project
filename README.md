@@ -341,6 +341,27 @@ Powiedz mi w czym problem i jak to naprawić.
 <błąd>
 ```
 
+(PC) AI częściowo pomogło mi w pisaniu plików YAML do deploymentów. Pytałem między innymi o to jak zintegrować Prometheusa z Grafaną, konfiguracja wygenerowana przez AI nie była jednak poprawna.
+```
+Mam prometheusa zainstalowanego przez helm. Jak mogę ustawić żeby scrapował dane z otel-collectora> (deploy się nazywa simplect-collector i są dostępne na porcie 9464)
+extraScrapeConfigs:
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['simplest-collector.default.svc.cluster.local:9464']
+```
+A poprawna konfiguracja wygląda tak:
+```
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: 'otel-collector'
+        static_configs:
+          - targets:
+              - simplest-collector.default.svc.cluster.local:9464
+```
+
+Ogólnie sztuczna inteligencja pomogła nam w szybszej realizacji projektu, ale często myliła się w szczegółach, co skutkowało stratą czasu. W internecie mało jest przykładów integracji C++ z gRPC oraz OpenTelemetry, przez co AI nie było dobrze wytrenowane do tych zadań.
+
 ## Podsumowanie i wnioski
 
 Niniejszy projekt stanowi kompletny przykład systemu mikroserwisowego, który integruje:
