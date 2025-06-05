@@ -335,6 +335,14 @@ Find what is wrong with this log.
 <For example log from vechicle-service with some kind of error>
 ```
 
+(AW) W procesie tworzenia projektu, korzystałem z AI głównie gdy pojawiały się problemy, których powodu nie byłem w stanie samemu zrozumieć. Przykładowo, we wczesnej fazie projektu napotkałem problemy podczas kompilacji plików *.cpp* - wiedziałem, że Makefile działał poprawnie u innych, więc założyłem że problem był związany z systemem MacOS.
+```
+<Błąd z konsoli>
+<Fragment Makefile z komendami kompilacji z flagami>
+U mnie na Macu wyrzuca taki błąd, na Linuxie działa w porządku. W czym problem?
+```
+W odpowiedzi dostałem przydatne wskazówki nt. co muszę konkretnie naprawić w plikach konfiguracyjnych w systemie używanych przez pkg-config, a także jakie flagi dodać do kompilacji w moim przypadku.
+
 (MP) Wykorzystałem AI głównie do naprawiania błędów w kodzie.
 ```
 Powiedz mi w czym problem i jak to naprawić.
