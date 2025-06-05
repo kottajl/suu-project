@@ -344,7 +344,8 @@ Czasem niestety AI się myliło, i próbowało używać klas które nie istniał
 
 (PC) AI częściowo pomogło mi w pisaniu plików YAML do deploymentów. Pytałem między innymi o to jak zintegrować Prometheusa z Grafaną, konfiguracja wygenerowana przez AI nie była jednak poprawna.
 ```
-Mam prometheusa zainstalowanego przez helm. Jak mogę ustawić żeby scrapował dane z otel-collectora> (deploy się nazywa simplect-collector i są dostępne na porcie 9464)
+Mam prometheusa zainstalowanego przez helm. Jak mogę ustawić żeby scrapował dane z otel-collectora>
+(deploy się nazywa simplect-collector i są dostępne na porcie 9464)
 extraScrapeConfigs:
   - job_name: 'otel-collector'
     static_configs:
